@@ -92,6 +92,7 @@ async function boot() {
   $("signupTab").onclick = () => switchAuth("signup");
   $("loginForm").addEventListener("submit", (e) => withBusy(e, login));
   $("signupForm").addEventListener("submit", (e) => withBusy(e, signup));
+  $("googleLoginBtn").onclick = signInWithGoogle;
   document.querySelectorAll(".pw-toggle").forEach(b => b.onclick = () => {
     const i = $(b.dataset.for), show = i.type === "password";
     i.type = show ? "text" : "password";
@@ -127,6 +128,17 @@ async function boot() {
     if (session) await enterApp(session.user);
     else leaveApp();
   });
+}
+
+async function signInWithGoogle() {
+  setAuthMessage("");
+  const { error } = await db.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin + window.location.pathname
+    }
+  });
+  if (error) setAuthMessage(error.message);
 }
 
 async function signup(e) {
