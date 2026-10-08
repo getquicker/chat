@@ -167,3 +167,12 @@ dialog::backdrop{background:rgba(0,0,0,.45);backdrop-filter:blur(3px)}
   .auth-view{align-items:start;padding-top:max(24px,env(safe-area-inset-top))}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation-duration:.01ms!important}}
+
+
+/* Google sign-in */
+.auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--muted);font-size:13px}
+.auth-divider::before,.auth-divider::after{content:"";height:1px;background:var(--line);flex:1}
+.google-btn{width:100%;min-height:48px;border:1px solid var(--line);border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;gap:10px;font-weight:600;font-size:15px;transition:background .15s,box-shadow .15s,transform .1s}
+.google-btn:hover{background:var(--surface-2);box-shadow:var(--shadow)}
+.google-btn:active{transform:scale(.98)}
+.google-icon{width:22px;height:22px;display:grid;place-items:center;font-family:Arial,sans-serif;font-size:18px;font-weight:700;color:#4285f4}
