@@ -100,6 +100,8 @@ async function boot() {
     b.setAttribute("aria-label", show ? "Hide password" : "Show password");
   });
   $("logoutBtn").onclick = () => db.auth.signOut();
+  $("profileBtn").onclick = openProfile;
+  $("saveUsernameBtn").onclick = saveUsername;
   $("newChatBtn").onclick = openNewChat;
   $("welcomeNewChat").onclick = openNewChat;
   $("mobileBackBtn").onclick = closeConversation;
@@ -280,10 +282,22 @@ function renderChatList(loading = false) {
         <div class="chat-row"><span class="chat-name">${escapeHtml(c.name)}</span><span class="chat-time">${listTime(c.lastAt)}</span></div>
         <div class="chat-row"><span class="chat-preview">${escapeHtml(preview)}</span>${c.unread ? `<span class="badge">${c.unread > 99 ? "99+" : c.unread}</span>` : ""}</div>
       </div>
+      <span class="chat-delete-wrap"><span class="delete-chat-btn" role="button" tabindex="0" title="Delete chat" aria-label="Delete chat">×</span></span>
     </button>`;
   }).join("");
 
-  list.querySelectorAll(".chat-item").forEach(el => el.onclick = () => selectConversation(el.dataset.id));
+  list.querySelectorAll(".chat-item").forEach(el => {
+    el.onclick = (e) => {
+      if (e.target.closest(".delete-chat-btn")) return;
+      selectConversation(el.dataset.id);
+    };
+    const del = el.querySelector(".delete-chat-btn");
+    if (del) del.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteChat(el.dataset.id);
+    };
+  });
 }
 
 function sortChats() {
@@ -466,6 +480,59 @@ function subscribeInbox() {
       }
     })
     .subscribe();
+}
+
+/* ---------- profile + delete chat ---------- */
+function openProfile() {
+  $("profileUsername").value = myProfile?.username || "";
+  $("profileMessage").textContent = "";
+  $("profileDialog").showModal();
+}
+
+async function saveUsername() {
+  const input = $("profileUsername");
+  const username = input.value.trim().toLowerCase();
+  $("profileMessage").textContent = "";
+  if (!/^[a-z0-9_]{3,24}$/.test(username)) {
+    $("profileMessage").textContent = "Username must be 3–24 characters using letters, numbers or underscore.";
+    return;
+  }
+  if (username === myProfile.username) {
+    $("profileDialog").close();
+    return;
+  }
+  const btn = $("saveUsernameBtn");
+  btn.disabled = true;
+  try {
+    const { data, error } = await db.rpc("change_username", { new_username: username });
+    if (error) {
+      console.error(error);
+      $("profileMessage").textContent = error.message.includes("already") ? "That username is already taken." : "Could not change username.";
+      return;
+    }
+    myProfile.username = data || username;
+    $("myName").textContent = "@" + myProfile.username;
+    $("profileDialog").close();
+    showToast("Username changed.");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteChat(id) {
+  const c = getChat(id);
+  if (!c) return;
+  if (!confirm("Delete this chat with @" + c.username + "? This removes the conversation and its messages for everyone.")) return;
+  const { error } = await db.rpc("delete_conversation", { p_conversation_id: id });
+  if (error) {
+    console.error(error);
+    showToast("Could not delete chat. Run the latest Supabase SQL first.", true);
+    return;
+  }
+  if (activeId === id) closeConversation();
+  chats = chats.filter(x => x.id !== id);
+  renderChatList();
+  showToast("Chat deleted.");
 }
 
 /* ---------- new chat dialog ---------- */
