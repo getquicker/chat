@@ -130,10 +130,20 @@
         <h3>Profile settings</h3>
         <button class="icon-btn" value="cancel" type="submit" aria-label="Close">×</button>
       </div>
+      <div class="profile-photo-row">
+        <div id="profileAvatarPreview" class="avatar profile-avatar">?</div>
+        <div class="profile-photo-actions">
+          <label for="profileAvatarInput" class="profile-photo-btn">Choose profile picture</label>
+          <input id="profileAvatarInput" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+          <small>JPG, PNG, WEBP or GIF. Max 5 MB.</small>
+        </div>
+      </div>
+      <label for="profileDisplayName">Name</label>
+      <input id="profileDisplayName" maxlength="60" autocomplete="name" placeholder="Your name">
       <label for="profileUsername">Username</label>
       <input id="profileUsername" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" autocomplete="off" autocapitalize="none" spellcheck="false">
       <small>3–24 characters: letters, numbers and underscore.</small>
-      <button id="saveUsernameBtn" class="primary profile-save" type="button">Save username</button>
+      <button id="saveProfileBtn" class="primary profile-save" type="button">Save profile</button>
       <p id="profileMessage" class="message" role="alert"></p>
     </form>
   </dialog>
@@ -151,6 +161,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>
