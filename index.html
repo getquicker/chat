@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SimpleChat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="toast" class="toast"></div>
+
+  <section id="authView" class="auth-view">
+    <div class="auth-card">
+      <div class="brand">SimpleChat</div>
+      <p class="muted">Simple, private messaging.</p>
+
+      <div class="tabs">
+        <button id="loginTab" class="tab active">Login</button>
+        <button id="signupTab" class="tab">Sign up</button>
+      </div>
+
+      <form id="loginForm">
+        <label>Username or email</label>
+        <input id="loginIdentifier" autocomplete="username" required placeholder="username or you@example.com">
+        <label>Password</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required placeholder="••••••••">
+        <button class="primary" type="submit">Login</button>
+      </form>
+
+      <form id="signupForm" class="hidden">
+        <label>Username</label>
+        <input id="signupUsername" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" required placeholder="your_username">
+        <small>3–24 characters: letters, numbers and underscore.</small>
+        <label>Email</label>
+        <input id="signupEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+        <label>Password</label>
+        <input id="signupPassword" type="password" minlength="6" autocomplete="new-password" required placeholder="At least 6 characters">
+        <label>Display name</label>
+        <input id="signupDisplayName" maxlength="60" placeholder="Your name">
+        <button class="primary" type="submit">Create account</button>
+      </form>
+
+      <p id="authMessage" class="message"></p>
+    </div>
+  </section>
+
+  <section id="appView" class="app hidden">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="mobileMenuBtn" class="mobile-menu icon-btn" type="button" aria-label="Open chats">☰</button>
+        <div class="brand"><span class="brand-mark">S</span><span>SimpleChat</span></div>
+      </div>
+      <div class="me">
+        <span id="myName" class="user-pill"></span>
+        <button id="logoutBtn" class="ghost">Logout</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <div id="mobileOverlay" class="mobile-overlay"></div>
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-head">
+          <div>
+            <span class="eyebrow">MESSAGES</span>
+            <h2>Chats</h2>
+          </div>
+          <div class="sidebar-actions">
+            <button id="newChatBtn" class="icon-btn accent-icon" title="New chat" aria-label="New chat">+</button>
+            <button id="closeSidebarBtn" class="icon-btn mobile-only" title="Close chats" aria-label="Close chats">×</button>
+          </div>
+        </div>
+        <div id="chatList" class="chat-list">
+          <div class="empty">No conversations yet.</div>
+        </div>
+      </aside>
+
+      <section class="chat-panel">
+        <div id="welcomePanel" class="welcome">
+          <div class="welcome-icon">💬</div>
+          <h2>Welcome to SimpleChat</h2>
+          <p>Start a new conversation to begin messaging.</p>
+          <button id="welcomeNewChat" class="primary">New chat</button>
+        </div>
+
+        <div id="conversationPanel" class="conversation hidden">
+          <div class="conversation-head">
+            <button id="mobileBackBtn" class="mobile-back icon-btn" type="button" aria-label="Back to chats">‹</button>
+            <div class="conversation-avatar avatar" id="conversationAvatar">?</div>
+            <div class="conversation-meta">
+              <h2 id="conversationName"></h2>
+              <span id="conversationStatus" class="muted"></span>
+            </div>
+            <span class="online-dot" aria-label="Online"></span>
+          </div>
+          <div id="messages" class="messages"></div>
+          <form id="messageForm" class="composer">
+            <input id="messageInput" maxlength="2000" autocomplete="off" placeholder="Write a message..." required>
+            <button class="primary" type="submit">Send</button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <dialog id="newChatDialog">
+    <form method="dialog" id="newChatForm">
+      <div class="dialog-head">
+        <h3>New conversation</h3>
+        <button class="icon-btn" value="cancel" type="submit">×</button>
+      </div>
+      <label>Search username</label>
+      <input id="userSearch" minlength="3" maxlength="24" placeholder="username" autocomplete="off">
+      <div id="userResults" class="user-results"></div>
+      <button class="ghost close-dialog" value="cancel" type="submit">Close</button>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
