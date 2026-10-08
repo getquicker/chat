@@ -176,3 +176,14 @@ dialog::backdrop{background:rgba(0,0,0,.45);backdrop-filter:blur(3px)}
 .google-btn:hover{background:var(--surface-2);box-shadow:var(--shadow)}
 .google-btn:active{transform:scale(.98)}
 .google-icon{width:22px;height:22px;display:grid;place-items:center;font-family:Arial,sans-serif;font-size:18px;font-weight:700;color:#4285f4}
+
+/* Profile + chat deletion */
+.me{width:100%;border:0;text-align:left;background:transparent;color:inherit;cursor:pointer}
+.me:hover{background:var(--surface-2)}
+.profile-chevron{margin-left:auto;font-size:26px;color:var(--muted);line-height:1}
+.profile-save{width:100%;margin-top:18px}
+.chat-delete-wrap{display:flex;align-items:center;justify-content:center;flex:0 0 30px}
+.delete-chat-btn{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:var(--muted);font-size:22px;line-height:1;opacity:0;transition:opacity .15s,background .15s,color .15s}
+.chat-item:hover .delete-chat-btn,.chat-item:focus-visible .delete-chat-btn{opacity:1}
+.delete-chat-btn:hover{background:var(--danger);color:#fff}
+@media(max-width:720px){.delete-chat-btn{opacity:1}}
