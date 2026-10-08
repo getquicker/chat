@@ -101,7 +101,8 @@ async function boot() {
   });
   $("logoutBtn").onclick = () => db.auth.signOut();
   $("profileBtn").onclick = openProfile;
-  $("saveUsernameBtn").onclick = saveUsername;
+  $("saveProfileBtn").onclick = saveProfile;
+  $("profileAvatarInput").onchange = previewAvatar;
   $("newChatBtn").onclick = openNewChat;
   $("welcomeNewChat").onclick = openNewChat;
   $("mobileBackBtn").onclick = closeConversation;
@@ -209,7 +210,7 @@ async function enterApp(user) {
   $("appView").classList.remove("hidden");
   $("myDisplay").textContent = name;
   $("myName").textContent = `@${profile.username}`;
-  setAvatar($("myAvatar"), name, profile.id);
+  setProfileAvatar($("myAvatar"), profile.avatar_url, name, profile.id);
   renderChatList(true);
   await loadChats();
   subscribeInbox();
@@ -483,37 +484,102 @@ function subscribeInbox() {
 }
 
 /* ---------- profile + delete chat ---------- */
+function setProfileAvatar(el, url, name, seed) {
+  if (url) {
+    el.textContent = "";
+    el.style.backgroundImage = `url("${url}")`;
+    el.style.backgroundSize = "cover";
+    el.style.backgroundPosition = "center";
+    el.style.setProperty("--h", hue(seed || name));
+  } else {
+    el.style.backgroundImage = "";
+    el.style.backgroundSize = "";
+    el.style.backgroundPosition = "";
+    setAvatar(el, name, seed);
+  }
+}
+
 function openProfile() {
+  $("profileDisplayName").value = myProfile?.display_name || "";
   $("profileUsername").value = myProfile?.username || "";
+  $("profileAvatarInput").value = "";
+  setProfileAvatar($("profileAvatarPreview"), myProfile?.avatar_url, myProfile?.display_name || myProfile?.username, myProfile?.id);
   $("profileMessage").textContent = "";
   $("profileDialog").showModal();
 }
 
-async function saveUsername() {
-  const input = $("profileUsername");
-  const username = input.value.trim().toLowerCase();
+function previewAvatar() {
+  const file = $("profileAvatarInput").files?.[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    $("profileMessage").textContent = "Profile picture must be 5 MB or smaller.";
+    $("profileAvatarInput").value = "";
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => setProfileAvatar($("profileAvatarPreview"), reader.result, myProfile?.display_name || myProfile?.username, myProfile?.id);
+  reader.readAsDataURL(file);
+}
+
+async function saveProfile() {
+  const name = $("profileDisplayName").value.trim();
+  const username = $("profileUsername").value.trim().toLowerCase();
+  const file = $("profileAvatarInput").files?.[0];
   $("profileMessage").textContent = "";
+
+  if (!name || name.length > 60) {
+    $("profileMessage").textContent = "Name must be 1–60 characters.";
+    return;
+  }
   if (!/^[a-z0-9_]{3,24}$/.test(username)) {
     $("profileMessage").textContent = "Username must be 3–24 characters using letters, numbers or underscore.";
     return;
   }
-  if (username === myProfile.username) {
-    $("profileDialog").close();
+  if (file && file.size > 5 * 1024 * 1024) {
+    $("profileMessage").textContent = "Profile picture must be 5 MB or smaller.";
     return;
   }
-  const btn = $("saveUsernameBtn");
+
+  const btn = $("saveProfileBtn");
   btn.disabled = true;
   try {
-    const { data, error } = await db.rpc("change_username", { new_username: username });
-    if (error) {
-      console.error(error);
-      $("profileMessage").textContent = error.message.includes("already") ? "That username is already taken." : "Could not change username.";
+    if (username !== myProfile.username) {
+      const { data, error } = await db.rpc("change_username", { new_username: username });
+      if (error) {
+        console.error(error);
+        $("profileMessage").textContent = error.message.includes("already") ? "That username is already taken." : (error.message || "Could not change username.");
+        return;
+      }
+      myProfile.username = data || username;
+    }
+
+    const updates = { display_name: name };
+    if (file) {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const path = `${currentUser.id}/avatar-${Date.now()}.${ext || "jpg"}`;
+      const { error: uploadError } = await db.storage.from("avatars").upload(path, file, { upsert: false, contentType: file.type || "image/jpeg" });
+      if (uploadError) {
+        console.error(uploadError);
+        $("profileMessage").textContent = uploadError.message || "Could not upload profile picture.";
+        return;
+      }
+      const { data: publicData } = db.storage.from("avatars").getPublicUrl(path);
+      updates.avatar_url = publicData.publicUrl;
+    }
+
+    const { data: updated, error: profileError } = await db.from("profiles").update(updates).eq("id", currentUser.id).select("*").single();
+    if (profileError) {
+      console.error(profileError);
+      $("profileMessage").textContent = profileError.message || "Could not save profile.";
       return;
     }
-    myProfile.username = data || username;
-    $("myName").textContent = "@" + myProfile.username;
+
+    myProfile = updated;
+    $("myDisplay").textContent = updated.display_name || updated.username;
+    $("myName").textContent = "@" + updated.username;
+    setProfileAvatar($("myAvatar"), updated.avatar_url, updated.display_name || updated.username, updated.id);
     $("profileDialog").close();
-    showToast("Username changed.");
+    showToast("Profile updated.");
   } finally {
     btn.disabled = false;
   }
