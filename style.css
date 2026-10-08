@@ -187,3 +187,11 @@ dialog::backdrop{background:rgba(0,0,0,.45);backdrop-filter:blur(3px)}
 .chat-item:hover .delete-chat-btn,.chat-item:focus-visible .delete-chat-btn{opacity:1}
 .delete-chat-btn:hover{background:var(--danger);color:#fff}
 @media(max-width:720px){.delete-chat-btn{opacity:1}}
+
+
+/* Profile editor */
+.profile-photo-row{display:flex;align-items:center;gap:14px;margin:6px 0 4px}
+.profile-avatar{width:72px;height:72px;font-size:22px}
+.profile-photo-actions{min-width:0;flex:1}
+.profile-photo-btn{display:inline-flex;align-items:center;justify-content:center;margin:0;padding:9px 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);font-weight:600;font-size:13px;cursor:pointer}
+.profile-photo-btn:hover{filter:brightness(.96)}
