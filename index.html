@@ -81,10 +81,11 @@
           <input id="chatFilter" type="search" placeholder="Search chats" autocomplete="off" aria-label="Search chats">
         </div>
         <div id="chatList" class="chat-list" aria-live="polite"></div>
-        <div class="me">
+        <button id="profileBtn" class="me" type="button" title="Profile settings">
           <div id="myAvatar" class="avatar sm"></div>
           <div class="me-meta"><strong id="myDisplay"></strong><span id="myName" class="muted"></span></div>
-        </div>
+          <span class="profile-chevron">›</span>
+        </button>
       </aside>
 
       <section class="chat-panel">
@@ -122,6 +123,20 @@
       </section>
     </div>
   </section>
+
+  <dialog id="profileDialog">
+    <form method="dialog" id="profileForm">
+      <div class="dialog-head">
+        <h3>Profile settings</h3>
+        <button class="icon-btn" value="cancel" type="submit" aria-label="Close">×</button>
+      </div>
+      <label for="profileUsername">Username</label>
+      <input id="profileUsername" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <small>3–24 characters: letters, numbers and underscore.</small>
+      <button id="saveUsernameBtn" class="primary profile-save" type="button">Save username</button>
+      <p id="profileMessage" class="message" role="alert"></p>
+    </form>
+  </dialog>
 
   <dialog id="newChatDialog">
     <form method="dialog" id="newChatForm">
