@@ -16,6 +16,13 @@ let activeId = null;       // active conversation id
 let messages = [];         // messages of the active conversation
 let inbox = null;          // realtime channel for all my messages
 let unseenBelow = 0;       // new messages while scrolled up
+let callChannel = null;
+let peerConnection = null;
+let localStream = null;
+let remoteStream = null;
+let currentCall = null;
+let incomingOffer = null;
+let queuedIceCandidates = [];
 
 /* ---------- helpers ---------- */
 function showToast(message, error = false) {
@@ -111,6 +118,16 @@ async function boot() {
   $("chatFilter").addEventListener("input", renderChatList);
   $("scrollDownBtn").onclick = () => scrollToBottom(true);
   $("messages").addEventListener("scroll", onScroll);
+  $("videoCallBtn").onclick = startVideoCall;
+  $("acceptCallBtn").onclick = acceptIncomingCall;
+  $("declineCallBtn").onclick = declineIncomingCall;
+  $("endCallBtn").onclick = () => endVideoCall(true);
+  $("callCloseBtn").onclick = () => {
+    if (currentCall) endVideoCall(true);
+    else $("callDialog").close();
+  };
+  $("muteCallBtn").onclick = toggleCallMute;
+  $("cameraCallBtn").onclick = toggleCallCamera;
 
   const input = $("messageInput");
   input.addEventListener("input", autoGrow);
@@ -214,10 +231,14 @@ async function enterApp(user) {
   renderChatList(true);
   await loadChats();
   subscribeInbox();
+  subscribeCallSignals();
 }
 
 function leaveApp() {
   if (inbox) db.removeChannel(inbox);
+  if (callChannel) db.removeChannel(callChannel);
+  callChannel = null;
+  if (currentCall) endVideoCall(false);
   inbox = null; currentUser = null; myProfile = null;
   activeId = null; chats = []; messages = [];
   document.title = "SimpleChat";
@@ -246,8 +267,7 @@ async function loadChats() {
   const { data, error } = await db.rpc("get_my_chats");
   if (error) {
     console.error(error);
-    showToast("Could not load chats. Run supabase_v2.sql first.", true);
-    return;
+    showToast("Could not load chats. Run supabase_v2.sql first.", true);    return;
   }
   chats = (data || []).map(mapChat);
   if (activeId) { const c = getChat(activeId); if (c) c.unread = 0; }
@@ -496,8 +516,7 @@ function setProfileAvatar(el, url, name, seed) {
     el.style.backgroundSize = "";
     el.style.backgroundPosition = "";
     setAvatar(el, name, seed);
-  }
-}
+  }}
 
 function openProfile() {
   $("profileDisplayName").value = myProfile?.display_name || "";
@@ -648,5 +667,227 @@ async function startConversation(otherUserId) {
   await loadChats();
   await selectConversation(data);
 }
+
+
+/* ---------- one-to-one video calling (WebRTC + Supabase Realtime signaling) ---------- */
+const rtcConfig = {
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+};
+
+function subscribeCallSignals() {
+  if (callChannel) db.removeChannel(callChannel);
+  callChannel = db.channel("call-signals:" + currentUser.id)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "call_signals" }, async payload => {
+      const signal = payload.new;
+      if (!currentUser || signal.recipient_id !== currentUser.id) return;
+      if (signal.type === "offer") {
+        if (currentCall) {
+          await sendCallSignal(signal.conversation_id, signal.sender_id, "busy", {});
+          return;
+        }
+        incomingOffer = signal;
+        const chat = getChat(signal.conversation_id);
+        $("callTitle").textContent = "Incoming video call";
+        $("callStatus").textContent = chat ? chat.name + " is calling you" : "Someone is calling you";
+        $("acceptCallBtn").classList.remove("hidden");
+        $("declineCallBtn").classList.remove("hidden");
+        $("muteCallBtn").classList.add("hidden");
+        $("cameraCallBtn").classList.add("hidden");
+        $("endCallBtn").classList.add("hidden");
+        $("remoteVideoPlaceholder").textContent = "Incoming video call";
+        $("callDialog").showModal();
+      } else if (!currentCall || signal.conversation_id !== currentCall.conversationId || signal.sender_id !== currentCall.peerId) {
+        return;
+      } else if (signal.type === "answer" && currentCall.role === "caller") {
+        try {
+          await peerConnection.setRemoteDescription(signal.payload);
+          currentCall.connected = true;
+          $("callStatus").textContent = "Connected";
+          await flushQueuedIce();
+        } catch (err) { console.error(err); showToast("Could not connect the call.", true); }
+      } else if (signal.type === "ice-candidate") {
+        try {
+          const candidate = new RTCIceCandidate(signal.payload);
+          if (peerConnection?.remoteDescription) await peerConnection.addIceCandidate(candidate);
+          else queuedIceCandidates.push(candidate);
+        } catch (err) { console.error("ICE candidate error", err); }
+      } else if (signal.type === "hangup" || signal.type === "decline" || signal.type === "busy") {
+        const message = signal.type === "decline" ? "Call declined." : signal.type === "busy" ? "The other person is busy." : "Call ended.";
+        await endVideoCall(false);
+        showToast(message);
+      }
+    })
+    .subscribe();
+}
+
+async function sendCallSignal(conversationId, recipientId, type, payload) {
+  const { error } = await db.from("call_signals").insert({
+    conversation_id: conversationId,
+    sender_id: currentUser.id,
+    recipient_id: recipientId,
+    type,
+    payload
+  });
+  if (error) {
+    console.error(error);
+    showToast("Call signaling failed. Run supabase_video.sql in Supabase.", true);
+    throw error;
+  }
+}
+
+async function prepareMedia() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("Video calls need a secure connection and a browser with camera support.");
+  }
+  localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
+  remoteStream = new MediaStream();
+  $("localVideo").srcObject = localStream;
+  $("remoteVideo").srcObject = remoteStream;
+  $("remoteVideoPlaceholder").classList.remove("hidden");
+  $("remoteVideoPlaceholder").textContent = "Connecting video…";
+  peerConnection = new RTCPeerConnection(rtcConfig);
+  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  peerConnection.ontrack = event => {
+    event.streams[0]?.getTracks().forEach(track => {
+      if (!remoteStream.getTracks().some(t => t.id === track.id)) remoteStream.addTrack(track);
+    });
+    $("remoteVideoPlaceholder").classList.add("hidden");
+  };
+  peerConnection.onicecandidate = event => {
+    if (event.candidate && currentCall) {
+      sendCallSignal(currentCall.conversationId, currentCall.peerId, "ice-candidate", event.candidate.toJSON()).catch(console.error);
+    }
+  };
+  peerConnection.onconnectionstatechange = () => {
+    if (!peerConnection) return;
+    if (peerConnection.connectionState === "connected") {
+      $("callStatus").textContent = "Connected";
+      currentCall.connected = true;
+    } else if (["failed", "disconnected"].includes(peerConnection.connectionState)) {
+      $("callStatus").textContent = "Connection unstable. Trying to reconnect…";
+    }
+  };
+  queuedIceCandidates = [];
+  $("acceptCallBtn").classList.add("hidden");
+  $("declineCallBtn").classList.add("hidden");
+  $("muteCallBtn").classList.remove("hidden");
+  $("cameraCallBtn").classList.remove("hidden");
+  $("endCallBtn").classList.remove("hidden");
+}
+
+async function startVideoCall() {
+  if (!activeId || currentCall) return;
+  const chat = getChat(activeId);
+  if (!chat) return;
+  currentCall = { conversationId: activeId, peerId: chat.otherId, role: "caller", connected: false };
+  $("callTitle").textContent = "Calling " + chat.name;
+  $("callStatus").textContent = "Allow camera and microphone access.";
+  $("remoteVideoPlaceholder").textContent = "Calling " + chat.name + "…";
+  $("callDialog").showModal();
+  try {
+    await prepareMedia();
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    await sendCallSignal(activeId, chat.otherId, "offer", peerConnection.localDescription.toJSON());
+    $("callStatus").textContent = "Ringing… waiting for answer";
+  } catch (err) {
+    console.error(err);
+    showToast(err.message || "Could not start video call.", true);
+    await endVideoCall(false);
+  }
+}
+
+async function acceptIncomingCall() {
+  const offerSignal = incomingOffer;
+  if (!offerSignal || currentCall) return;
+  incomingOffer = null;
+  currentCall = { conversationId: offerSignal.conversation_id, peerId: offerSignal.sender_id, role: "callee", connected: false };
+  try {
+    $("callTitle").textContent = "Video call";
+    $("callStatus").textContent = "Connecting…";
+    await prepareMedia();
+    await peerConnection.setRemoteDescription(offerSignal.payload);
+    await flushQueuedIce();
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    await sendCallSignal(currentCall.conversationId, currentCall.peerId, "answer", peerConnection.localDescription.toJSON());
+    $("callStatus").textContent = "Connecting to caller…";
+  } catch (err) {
+    console.error(err);
+    showToast(err.message || "Could not accept the call.", true);
+    await endVideoCall(true);
+  }
+}
+
+async function declineIncomingCall() {
+  const offer = incomingOffer;
+  incomingOffer = null;
+  if (offer) {
+    try { await sendCallSignal(offer.conversation_id, offer.sender_id, "decline", {}); }
+    catch (err) { console.error(err); }
+  }
+  if (!currentCall) $("callDialog").close();
+  $("acceptCallBtn").classList.add("hidden");
+  $("declineCallBtn").classList.remove("hidden");
+  $("remoteVideoPlaceholder").textContent = "Call declined";
+}
+
+async function flushQueuedIce() {
+  if (!peerConnection?.remoteDescription) return;
+  const candidates = queuedIceCandidates;
+  queuedIceCandidates = [];
+  for (const candidate of candidates) {
+    try { await peerConnection.addIceCandidate(candidate); }
+    catch (err) { console.error("Could not add queued ICE candidate", err); }
+  }
+}
+
+function toggleCallMute() {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  $("muteCallBtn").textContent = track.enabled ? "Mute mic" : "Unmute mic";
+}
+
+function toggleCallCamera() {
+  if (!localStream) return;
+  const track = localStream.getVideoTracks()[0];
+  if (!track) return;
+  track.enabled = !track.enabled;
+  $("cameraCallBtn").textContent = track.enabled ? "Turn camera off" : "Turn camera on";
+}
+
+async function endVideoCall(notifyPeer = true) {
+  const call = currentCall;
+  currentCall = null;
+  if (notifyPeer && call && currentUser) {
+    try { await sendCallSignal(call.conversationId, call.peerId, "hangup", {}); }
+    catch (err) { console.error(err); }
+  }
+  if (peerConnection) {
+    peerConnection.ontrack = null;
+    peerConnection.onicecandidate = null;
+    peerConnection.close();
+  }
+  peerConnection = null;
+  if (localStream) localStream.getTracks().forEach(track => track.stop());
+  localStream = null;
+  if (remoteStream) remoteStream.getTracks().forEach(track => track.stop());
+  remoteStream = null;
+  queuedIceCandidates = [];
+  $("localVideo").srcObject = null;
+  $("remoteVideo").srcObject = null;
+  $("acceptCallBtn").classList.add("hidden");
+  $("declineCallBtn").classList.remove("hidden");
+  $("muteCallBtn").classList.add("hidden");
+  $("cameraCallBtn").classList.add("hidden");
+  $("endCallBtn").classList.add("hidden");
+  $("remoteVideoPlaceholder").classList.remove("hidden");
+  $("remoteVideoPlaceholder").textContent = "Call ended";
+  if ($("callDialog").open) $("callDialog").close();
+  incomingOffer = null;
+}
+
 
 boot();
