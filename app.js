@@ -115,7 +115,10 @@ function updateNotificationButton() {
   }
   const enabled = Notification.permission === "granted";
   btn.classList.toggle("permission-granted", enabled);
-  btn.textContent = enabled ? "🔔" : "🔕";
+  // Keep SVG icons instead of emoji for a consistent premium UI
+  btn.innerHTML = enabled
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M18.63 13A17.89 17.89 0 0 1 18 8"/><path d="M6.26 6.26A6 6 0 0 0 6 8c0 7-3 9-3 9h14"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
   btn.title = enabled ? "Notifications enabled" : "Enable notifications";
   btn.setAttribute("aria-label", btn.title);
 }
@@ -484,12 +487,9 @@ async function loadMessages() {
 function renderMessages() {
   const box = $("messages");
   if (!messages.length) {
-    box.innerHTML = '<div class="empty"><strong>No messages yet</strong><span>Say hello 👋</span></div>';
+    box.innerHTML = '<div class="empty">No messages yet. Say hello!</div>';
     return;
   }
-  const GAP = 10 * 60 * 1000;
-  const t = (m) => new Date(m.created_at).getTime();
-  const head = (m, p) => !p || t(m) - t(p) > GAP || dayStart(new Date(t(m))).getTime() !== dayStart(new Date(t(p))).getTime();
   const peer = getChat(activeId);
   let html = "";
   messages.forEach((m, i) => {
@@ -503,6 +503,11 @@ function renderMessages() {
     html += `<div class="row ${mine ? "mine" : "theirs"}${joinPrev ? " j-prev" : ""}${joinNext ? " j-next" : ""}${m.pending ? " pending" : ""}">${av}<div class="bubble" title="${formatTime(m.created_at)}">${escapeHtml(m.body)}</div></div>`;
   });
   box.innerHTML = html;
+}
+
+function head(m, prev) {
+  if (!prev) return true;
+  return dayStart(new Date(m.created_at)).getTime() !== dayStart(new Date(prev.created_at)).getTime();
 }
 
 const box = () => $("messages");
@@ -555,252 +560,226 @@ async function sendMessage(e) {
     .insert({ conversation_id: convId, sender_id: currentUser.id, body })
     .select("id, conversation_id, sender_id, body, created_at")
     .single();
-
-  if (convId === activeId) {
+  if (error) {
+    console.error(error);
     messages = messages.filter(m => m.id !== tmp.id);
-    if (error) {
-      console.error(error);
-      if (!input.value) { input.value = body; autoGrow(); }
-      showToast("Message could not be sent.", true);
-    } else if (!messages.some(m => m.id === data.id)) {
-      messages.push(data);
-    }
     renderMessages();
-    scrollToBottom(false);
+    showToast("Message failed to send.", true);
+    return;
   }
-  if (!error) { touchChat(data, false); markActiveRead(); }
+  const idx = messages.findIndex(m => m.id === tmp.id);
+  if (idx >= 0) messages[idx] = data;
+  else messages.push(data);
+  renderMessages();
+
+  const c = getChat(convId);
+  if (c) {
+    c.last = body;
+    c.lastAt = data.created_at;
+    c.lastMine = true;
+    sortChats();
+    renderChatList();
+  }
 }
 
-/* ---------- realtime ---------- */
-function touchChat(m, incoming) {
-  const c = getChat(m.conversation_id);
-  if (!c) return false;
-  c.last = m.body;
-  c.lastAt = m.created_at;
-  c.lastMine = m.sender_id === currentUser.id;
-  if (incoming && !(m.conversation_id === activeId && !document.hidden)) c.unread += 1;
-  sortChats();
-  renderChatList();
-  return true;
-}
-
+/* ---------- realtime inbox ---------- */
 function subscribeInbox() {
   if (inbox) db.removeChannel(inbox);
-  // RLS limits these events to conversations I belong to.
-  inbox = db.channel("inbox:" + currentUser.id)
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (payload) => {
+  inbox = db.channel("inbox-" + currentUser.id)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, payload => {
       const m = payload.new;
-      const mine = m.sender_id === currentUser.id;
-
-      if (!getChat(m.conversation_id)) {
-        await loadChats(); // brand-new conversation
+      if (m.sender_id === currentUser.id) return;
+      const c = getChat(m.conversation_id);
+      if (c) {
+        c.last = m.body;
+        c.lastAt = m.created_at;
+        c.lastMine = false;
+        if (m.conversation_id !== activeId) c.unread = (c.unread || 0) + 1;
+        sortChats();
+        renderChatList();
       } else {
-        touchChat(m, !mine);
+        loadChats();
       }
-      if (!mine) {
-        const senderName = getChat(m.conversation_id)?.name || "Someone";
-        notifyUser("New message", senderName + ": " + String(m.body || "Sent you a message").slice(0, 120), m.conversation_id);
-      }
-
-      if (m.conversation_id === activeId && !messages.some(x => x.id === m.id)) {
-        const stick = nearBottom();
-        if (!mine) {
-          messages.push(m);
-          renderMessages();
-          if (stick) scrollToBottom(true);
-          else { unseenBelow++; updateScrollBtn(); }
-          markActiveRead();
-        }
+      if (m.conversation_id === activeId) {
+        messages.push(m);
+        const wasNear = nearBottom();
+        renderMessages();
+        if (wasNear) scrollToBottom(true);
+        else { unseenBelow++; updateScrollBtn(); }
+        markActiveRead();
+      } else {
+        const chat = getChat(m.conversation_id);
+        notifyUser(chat ? chat.name : "New message", m.body, m.conversation_id);
       }
     })
     .subscribe();
 }
 
-/* ---------- profile + delete chat ---------- */
-function setProfileAvatar(el, url, name, seed) {
-  if (url) {
-    el.textContent = "";
-    el.style.backgroundImage = `url("${url}")`;
-    el.style.backgroundSize = "cover";
-    el.style.backgroundPosition = "center";
-    el.style.setProperty("--h", hue(seed || name));
-  } else {
-    el.style.backgroundImage = "";
-    el.style.backgroundSize = "";
-    el.style.backgroundPosition = "";
-    setAvatar(el, name, seed);
-  }}
-
-function openProfile() {
-  $("profileDisplayName").value = myProfile?.display_name || "";
-  $("profileUsername").value = myProfile?.username || "";
-  $("profileAvatarInput").value = "";
-  setProfileAvatar($("profileAvatarPreview"), myProfile?.avatar_url, myProfile?.display_name || myProfile?.username, myProfile?.id);
-  $("profileMessage").textContent = "";
-  $("profileDialog").showModal();
-}
-
-function previewAvatar() {
-  const file = $("profileAvatarInput").files?.[0];
-  if (!file) return;
-  if (file.size > 5 * 1024 * 1024) {
-    $("profileMessage").textContent = "Profile picture must be 5 MB or smaller.";
-    $("profileAvatarInput").value = "";
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = () => setProfileAvatar($("profileAvatarPreview"), reader.result, myProfile?.display_name || myProfile?.username, myProfile?.id);
-  reader.readAsDataURL(file);
-}
-
-async function saveProfile() {
-  const name = $("profileDisplayName").value.trim();
-  const username = $("profileUsername").value.trim().toLowerCase();
-  const file = $("profileAvatarInput").files?.[0];
-  $("profileMessage").textContent = "";
-
-  if (!name || name.length > 60) {
-    $("profileMessage").textContent = "Name must be 1–60 characters.";
-    return;
-  }
-  if (!/^[a-z0-9_]{3,24}$/.test(username)) {
-    $("profileMessage").textContent = "Username must be 3–24 characters using letters, numbers or underscore.";
-    return;
-  }
-  if (file && file.size > 5 * 1024 * 1024) {
-    $("profileMessage").textContent = "Profile picture must be 5 MB or smaller.";
-    return;
-  }
-
-  const btn = $("saveProfileBtn");
-  btn.disabled = true;
-  try {
-    if (username !== myProfile.username) {
-      const { data, error } = await db.rpc("change_username", { new_username: username });
-      if (error) {
-        console.error(error);
-        $("profileMessage").textContent = error.message.includes("already") ? "That username is already taken." : (error.message || "Could not change username.");
-        return;
-      }
-      myProfile.username = data || username;
-    }
-
-    const updates = { display_name: name };
-    if (file) {
-      const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const path = `${currentUser.id}/avatar-${Date.now()}.${ext || "jpg"}`;
-      const { error: uploadError } = await db.storage.from("avatars").upload(path, file, { upsert: false, contentType: file.type || "image/jpeg" });
-      if (uploadError) {
-        console.error(uploadError);
-        $("profileMessage").textContent = uploadError.message || "Could not upload profile picture.";
-        return;
-      }
-      const { data: publicData } = db.storage.from("avatars").getPublicUrl(path);
-      updates.avatar_url = publicData.publicUrl;
-    }
-
-    const { data: updated, error: profileError } = await db.from("profiles").update(updates).eq("id", currentUser.id).select("*").single();
-    if (profileError) {
-      console.error(profileError);
-      $("profileMessage").textContent = profileError.message || "Could not save profile.";
-      return;
-    }
-
-    myProfile = updated;
-    $("myDisplay").textContent = updated.display_name || updated.username;
-    $("myName").textContent = "@" + updated.username;
-    setProfileAvatar($("myAvatar"), updated.avatar_url, updated.display_name || updated.username, updated.id);
-    $("profileDialog").close();
-    showToast("Profile updated.");
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function deleteChat(id) {
-  const c = getChat(id);
-  if (!c) return;
-  if (!confirm("Delete this chat with @" + c.username + "? This removes the conversation and its messages for everyone.")) return;
-  const { error } = await db.rpc("delete_conversation", { p_conversation_id: id });
-  if (error) {
-    console.error(error);
-    showToast("Could not delete chat. Run the latest Supabase SQL first.", true);
-    return;
-  }
-  if (activeId === id) closeConversation();
-  chats = chats.filter(x => x.id !== id);
-  renderChatList();
-  showToast("Chat deleted.");
-}
-
-/* ---------- new chat dialog ---------- */
+/* ---------- new chat / search ---------- */
 function openNewChat() {
   $("userSearch").value = "";
-  $("userResults").innerHTML = '<div class="muted">Type at least 3 characters.</div>';
+  $("userResults").innerHTML = "";
   $("newChatDialog").showModal();
   setTimeout(() => $("userSearch").focus(), 50);
 }
 
-let searchTimer;
-function searchUsers() {
+let searchTimer = null;
+async function searchUsers() {
   clearTimeout(searchTimer);
-  const q = $("userSearch").value.trim().toLowerCase().replace(/[%_]/g, "");
-  if (q.length < 3) {
-    $("userResults").innerHTML = '<div class="muted">Type at least 3 characters.</div>';
-    return;
-  }
+  const q = $("userSearch").value.trim().toLowerCase();
+  if (q.length < 2) { $("userResults").innerHTML = ""; return; }
   searchTimer = setTimeout(async () => {
-    const { data, error } = await db.from("profiles")
-      .select("id, username, display_name")
-      .ilike("username", `${q}%`)
-      .neq("id", currentUser.id)
-      .limit(10);
-    if (error) {
-      console.error(error);
-      $("userResults").innerHTML = '<div class="muted">Search failed.</div>';
+    const { data, error } = await db.rpc("search_users", { query: q });
+    if (error) { console.error(error); return; }
+    const results = (data || []).filter(u => u.id !== currentUser.id);
+    if (!results.length) {
+      $("userResults").innerHTML = `<div class="empty"><span>No users found.</span></div>`;
       return;
     }
-    $("userResults").innerHTML = data?.length ? data.map(p => `
-      <button type="button" class="user-result" data-user="${p.id}">
-        ${avatarHtml(p.display_name || p.username, p.id)}
-        <div><strong>${escapeHtml(p.display_name || p.username)}</strong><br><span class="muted">@${escapeHtml(p.username)}</span></div>
-      </button>`).join("") : '<div class="muted">No users found.</div>';
-    $("userResults").querySelectorAll(".user-result").forEach(el => el.onclick = () => startConversation(el.dataset.user));
+    $("userResults").innerHTML = results.map(u => {
+      const name = u.display_name || u.username;
+      return `<button type="button" class="user-result" data-id="${u.id}">
+        ${avatarHtml(name, u.id)}
+        <div><strong>${escapeHtml(name)}</strong><div class="muted">@${escapeHtml(u.username)}</div></div>
+      </button>`;
+    }).join("");
+    $("userResults").querySelectorAll(".user-result").forEach(el => {
+      el.onclick = () => startChat(el.dataset.id);
+    });
   }, 250);
 }
 
-async function startConversation(otherUserId) {
-  const { data, error } = await db.rpc("create_direct_conversation", { other_user_id: otherUserId });
+async function startChat(otherId) {
+  $("newChatDialog").close();
+  const { data, error } = await db.rpc("get_or_create_conversation", { other_user_id: otherId });
   if (error) {
     console.error(error);
-    showToast("Could not create conversation.", true);
+    showToast("Could not start chat.", true);
     return;
   }
-  $("newChatDialog").close();
   await loadChats();
-  await selectConversation(data);
+  selectConversation(data);
 }
 
+async function deleteChat(id) {
+  if (!confirm("Delete this conversation? Messages will be removed for you.")) return;
+  const { error } = await db.rpc("delete_conversation", { p_conversation_id: id });
+  if (error) {
+    console.error(error);
+    showToast("Could not delete chat.", true);
+    return;
+  }
+  chats = chats.filter(c => c.id !== id);
+  if (activeId === id) closeConversation();
+  renderChatList();
+  showToast("Chat deleted.");
+}
 
-/* ---------- one-to-one video calling (WebRTC + Supabase Realtime signaling) ---------- */
-const rtcConfig = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-};
+/* ---------- profile ---------- */
+function setProfileAvatar(el, url, name, seed) {
+  if (url) {
+    el.innerHTML = `<img src="${escapeHtml(url)}" alt="">`;
+  } else {
+    el.textContent = initials(name);
+    el.style.setProperty("--h", hue(seed || name));
+  }
+}
+
+function openProfile() {
+  $("profileDisplayName").value = myProfile.display_name || "";
+  $("profileUsername").value = myProfile.username || "";
+  setProfileAvatar($("profileAvatarPreview"), myProfile.avatar_url, myProfile.display_name || myProfile.username, myProfile.id);
+  $("profileMessage").textContent = "";
+  $("profileAvatarInput").value = "";
+  $("profileDialog").showModal();
+}
+
+function previewAvatar() {
+  const file = $("profileAvatarInput").files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    $("profileMessage").textContent = "Profile picture must be 5 MB or smaller.";
+    $("profileMessage").style.color = "var(--danger)";
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  $("profileAvatarPreview").innerHTML = `<img src="${url}" alt="">`;
+}
+
+async function saveProfile() {
+  $("profileMessage").textContent = "";
+  const displayName = $("profileDisplayName").value.trim();
+  const username = $("profileUsername").value.trim().toLowerCase();
+  if (!displayName || displayName.length > 60) {
+    $("profileMessage").textContent = "Name must be 1–60 characters.";
+    $("profileMessage").style.color = "var(--danger)";
+    return;
+  }
+  if (!/^[a-z0-9_]{3,24}$/.test(username)) {
+    $("profileMessage").textContent = "Username must be 3–24 characters using letters, numbers or underscore.";
+    $("profileMessage").style.color = "var(--danger)";
+    return;
+  }
+  const file = $("profileAvatarInput").files[0];
+  if (file && file.size > 5 * 1024 * 1024) {
+    $("profileMessage").textContent = "Profile picture must be 5 MB or smaller.";
+    $("profileMessage").style.color = "var(--danger)";
+    return;
+  }
+
+  let avatarUrl = myProfile.avatar_url;
+  if (file) {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${currentUser.id}/${Date.now()}.${ext}`;
+    const { error: uploadError } = await db.storage.from("avatars").upload(path, file, { upsert: true });
+    if (uploadError) {
+      $("profileMessage").textContent = uploadError.message || "Could not upload profile picture.";
+      $("profileMessage").style.color = "var(--danger)";
+      return;
+    }
+    const { data: pub } = db.storage.from("avatars").getPublicUrl(path);
+    avatarUrl = pub.publicUrl;
+  }
+
+  if (username !== myProfile.username) {
+    const { error } = await db.rpc("change_username", { new_username: username });
+    if (error) {
+      $("profileMessage").textContent = error.message.includes("already") ? "That username is already taken." : (error.message || "Could not change username.");
+      $("profileMessage").style.color = "var(--danger)";
+      return;
+    }
+  }
+
+  const { data: updated, error: profileError } = await db.from("profiles")
+    .update({ display_name: displayName, avatar_url: avatarUrl })
+    .eq("id", currentUser.id)
+    .select("*")
+    .single();
+  if (profileError) {
+    $("profileMessage").textContent = profileError.message || "Could not save profile.";
+    $("profileMessage").style.color = "var(--danger)";
+    return;
+  }
+  myProfile = updated;
+  $("myDisplay").textContent = updated.display_name || updated.username;
+  $("myName").textContent = "@" + updated.username;
+  setProfileAvatar($("myAvatar"), updated.avatar_url, updated.display_name || updated.username, updated.id);
+  $("profileDialog").close();
+  showToast("Profile saved.");
+  await loadChats();
+}
+
+/* ---------- WebRTC video calling ---------- */
+const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
 
 function subscribeCallSignals() {
   if (callChannel) db.removeChannel(callChannel);
-  callChannel = db.channel("call-signals:" + currentUser.id)
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "call_signals" }, async payload => {
-      const signal = payload.new;
-      if (!currentUser || signal.recipient_id !== currentUser.id) return;
-      if (signal.type === "offer") {
-        if (currentCall) {
-          await sendCallSignal(signal.conversation_id, signal.sender_id, "busy", {});
-          return;
-        }
-        incomingOffer = signal;
-        notifyUser("Incoming video call", (getChat(signal.conversation_id)?.name || "Someone") + " is calling you", signal.conversation_id);
-        const chat = getChat(signal.conversation_id);
+  callChannel = db.channel("calls-" + currentUser.id)
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "call_signals", filter: `receiver_id=eq.${currentUser.id}` }, async payload => {
+      const sig = payload.new;
+      if (sig.type === "offer") {
+        incomingOffer = sig;
+        const chat = getChat(sig.conversation_id);
         $("callTitle").textContent = "Incoming video call";
         $("callStatus").textContent = chat ? chat.name + " is calling you" : "Someone is calling you";
         $("acceptCallBtn").classList.remove("hidden");
@@ -809,133 +788,111 @@ function subscribeCallSignals() {
         $("cameraCallBtn").classList.add("hidden");
         $("endCallBtn").classList.add("hidden");
         $("remoteVideoPlaceholder").textContent = "Incoming video call";
+        $("remoteVideoPlaceholder").classList.remove("hidden");
         $("callDialog").showModal();
-      } else if (!currentCall || signal.conversation_id !== currentCall.conversationId || signal.sender_id !== currentCall.peerId) {
-        return;
-      } else if (signal.type === "answer" && currentCall.role === "caller") {
+      } else if (sig.type === "answer" && currentCall) {
         try {
-          await peerConnection.setRemoteDescription(signal.payload);
-          currentCall.connected = true;
-          $("callStatus").textContent = "Connected";
+          await peerConnection.setRemoteDescription(sig.payload);
           await flushQueuedIce();
-        } catch (err) { console.error(err); showToast("Could not connect the call.", true); }
-      } else if (signal.type === "ice-candidate") {
+          $("callStatus").textContent = "Connected";
+        } catch (err) { console.error(err); }
+      } else if (sig.type === "ice" && peerConnection) {
         try {
-          const candidate = new RTCIceCandidate(signal.payload);
-          if (peerConnection?.remoteDescription) await peerConnection.addIceCandidate(candidate);
+          const candidate = new RTCIceCandidate(sig.payload);
+          if (peerConnection.remoteDescription) await peerConnection.addIceCandidate(candidate);
           else queuedIceCandidates.push(candidate);
-        } catch (err) { console.error("ICE candidate error", err); }
-      } else if (signal.type === "hangup" || signal.type === "decline" || signal.type === "busy") {
-        const message = signal.type === "decline" ? "Call declined." : signal.type === "busy" ? "The other person is busy." : "Call ended.";
-        await endVideoCall(false);
-        showToast(message);
+        } catch (err) { console.error(err); }
+      } else if (sig.type === "hangup" || sig.type === "decline") {
+        if (currentCall || incomingOffer) {
+          await endVideoCall(false);
+          showToast(sig.type === "decline" ? "Call declined." : "Call ended.");
+        }
       }
     })
     .subscribe();
 }
 
-async function sendCallSignal(conversationId, recipientId, type, payload) {
-  const { error } = await db.from("call_signals").insert({
+async function sendCallSignal(conversationId, receiverId, type, payload) {
+  await db.from("call_signals").insert({
     conversation_id: conversationId,
     sender_id: currentUser.id,
-    recipient_id: recipientId,
+    receiver_id: receiverId,
     type,
     payload
   });
-  if (error) {
-    console.error(error);
-    showToast("Call signaling failed. Run supabase_video.sql in Supabase.", true);
-    throw error;
-  }
-}
-
-async function prepareMedia() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    throw new Error("Video calls need a secure connection and a browser with camera support.");
-  }
-  localStream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true },
-    video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } }
-  });
-  remoteStream = new MediaStream();
-  $("localVideo").srcObject = localStream;
-  $("remoteVideo").srcObject = remoteStream;
-  $("remoteVideo").playsInline = true;
-  $("localVideo").playsInline = true;
-  $("localVideo").play().catch(() => {});
-  $("remoteVideoPlaceholder").classList.remove("hidden");
-  $("remoteVideoPlaceholder").textContent = "Connecting video…";
-  peerConnection = new RTCPeerConnection(rtcConfig);
-  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-  peerConnection.ontrack = event => {
-    event.streams[0]?.getTracks().forEach(track => {
-      if (!remoteStream.getTracks().some(t => t.id === track.id)) remoteStream.addTrack(track);
-    });
-    $("remoteVideoPlaceholder").classList.add("hidden");
-    $("remoteVideo").play().catch(() => {});
-  };
-  peerConnection.onicecandidate = event => {
-    if (event.candidate && currentCall) {
-      sendCallSignal(currentCall.conversationId, currentCall.peerId, "ice-candidate", event.candidate.toJSON()).catch(console.error);
-    }
-  };
-  peerConnection.onconnectionstatechange = () => {
-    if (!peerConnection) return;
-    if (peerConnection.connectionState === "connected") {
-      $("callStatus").textContent = "Connected";
-      currentCall.connected = true;
-    } else if (["failed", "disconnected"].includes(peerConnection.connectionState)) {
-      $("callStatus").textContent = "Connection unstable. Trying to reconnect…";
-    }
-  };
-  queuedIceCandidates = [];
-  $("acceptCallBtn").classList.add("hidden");
-  $("declineCallBtn").classList.add("hidden");
-  $("muteCallBtn").classList.remove("hidden");
-  $("cameraCallBtn").classList.remove("hidden");
-  $("endCallBtn").classList.remove("hidden");
 }
 
 async function startVideoCall() {
   if (!activeId || currentCall) return;
   const chat = getChat(activeId);
   if (!chat) return;
-  currentCall = { conversationId: activeId, peerId: chat.otherId, role: "caller", connected: false };
-  $("callTitle").textContent = "Calling " + chat.name;
-  $("callStatus").textContent = "Allow camera and microphone access.";
-  $("remoteVideoPlaceholder").textContent = "Calling " + chat.name + "…";
-  $("callDialog").showModal();
   try {
-    await prepareMedia();
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    $("localVideo").srcObject = localStream;
+    peerConnection = new RTCPeerConnection({ iceServers });
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+    peerConnection.ontrack = (e) => {
+      remoteStream = e.streams[0];
+      $("remoteVideo").srcObject = remoteStream;
+      $("remoteVideoPlaceholder").classList.add("hidden");
+    };
+    peerConnection.onicecandidate = (e) => {
+      if (e.candidate) sendCallSignal(activeId, chat.otherId, "ice", e.candidate.toJSON()).catch(console.error);
+    };
     const offer = await peerConnection.createOffer();
     await peerConnection.setLocalDescription(offer);
-    await sendCallSignal(activeId, chat.otherId, "offer", peerConnection.localDescription.toJSON());
-    $("callStatus").textContent = "Ringing… waiting for answer";
+    currentCall = { conversationId: activeId, peerId: chat.otherId };
+    await sendCallSignal(activeId, chat.otherId, "offer", offer);
+    $("callTitle").textContent = "Calling…";
+    $("callStatus").textContent = chat.name;
+    $("acceptCallBtn").classList.add("hidden");
+    $("declineCallBtn").classList.add("hidden");
+    $("muteCallBtn").classList.remove("hidden");
+    $("cameraCallBtn").classList.remove("hidden");
+    $("endCallBtn").classList.remove("hidden");
+    $("remoteVideoPlaceholder").textContent = "Calling…";
+    $("remoteVideoPlaceholder").classList.remove("hidden");
+    $("callDialog").showModal();
   } catch (err) {
     console.error(err);
-    showToast(err.message || "Could not start video call.", true);
+    showToast("Could not access camera/microphone.", true);
     await endVideoCall(false);
   }
 }
 
 async function acceptIncomingCall() {
-  const offerSignal = incomingOffer;
-  if (!offerSignal || currentCall) return;
+  const offer = incomingOffer;
+  if (!offer) return;
   incomingOffer = null;
-  currentCall = { conversationId: offerSignal.conversation_id, peerId: offerSignal.sender_id, role: "callee", connected: false };
   try {
-    $("callTitle").textContent = "Video call";
-    $("callStatus").textContent = "Connecting…";
-    await prepareMedia();
-    await peerConnection.setRemoteDescription(offerSignal.payload);
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    $("localVideo").srcObject = localStream;
+    peerConnection = new RTCPeerConnection({ iceServers });
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+    peerConnection.ontrack = (e) => {
+      remoteStream = e.streams[0];
+      $("remoteVideo").srcObject = remoteStream;
+      $("remoteVideoPlaceholder").classList.add("hidden");
+    };
+    peerConnection.onicecandidate = (e) => {
+      if (e.candidate) sendCallSignal(offer.conversation_id, offer.sender_id, "ice", e.candidate.toJSON()).catch(console.error);
+    };
+    await peerConnection.setRemoteDescription(offer.payload);
     await flushQueuedIce();
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
-    await sendCallSignal(currentCall.conversationId, currentCall.peerId, "answer", peerConnection.localDescription.toJSON());
-    $("callStatus").textContent = "Connecting to caller…";
+    currentCall = { conversationId: offer.conversation_id, peerId: offer.sender_id };
+    await sendCallSignal(offer.conversation_id, offer.sender_id, "answer", answer);
+    $("callTitle").textContent = "Video call";
+    $("callStatus").textContent = "Connected";
+    $("acceptCallBtn").classList.add("hidden");
+    $("declineCallBtn").classList.add("hidden");
+    $("muteCallBtn").classList.remove("hidden");
+    $("cameraCallBtn").classList.remove("hidden");
+    $("endCallBtn").classList.remove("hidden");
   } catch (err) {
     console.error(err);
-    showToast(err.message || "Could not accept the call.", true);
+    showToast("Could not accept the call.", true);
     await endVideoCall(true);
   }
 }
