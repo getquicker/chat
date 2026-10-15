@@ -75,6 +75,108 @@ function updateTitle() {
   document.title = (n ? `(${n}) ` : "") + "SimpleChat";
 }
 
+/* ---------- PWA + browser notifications ---------- */
+let installPromptEvent = null;
+let serviceWorkerRegistration = null;
+
+function setupPWA() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js")
+      .then(reg => { serviceWorkerRegistration = reg; })
+      .catch(err => console.warn("Service worker registration failed", err));
+  }
+  window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    installPromptEvent = event;
+    $("installAppBtn").classList.remove("hidden");
+  });
+  window.addEventListener("appinstalled", () => {
+    installPromptEvent = null;
+    $("installAppBtn").classList.add("hidden");
+    showToast("SimpleChat installed.");
+  });
+  if (window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone) {
+    $("installAppBtn").classList.add("hidden");
+  }
+  if ("Notification" in window && Notification.permission === "default") {
+    // Keep permission opt-in: ask only when the user presses the bell.
+  }
+  updateNotificationButton();
+}
+
+function updateNotificationButton() {
+  const btn = $("enableNotificationsBtn");
+  if (!btn) return;
+  if (!("Notification" in window)) {
+    btn.title = "Notifications are not supported by this browser";
+    btn.setAttribute("aria-label", btn.title);
+    btn.disabled = true;
+    return;
+  }
+  const enabled = Notification.permission === "granted";
+  btn.classList.toggle("permission-granted", enabled);
+  btn.textContent = enabled ? "🔔" : "🔕";
+  btn.title = enabled ? "Notifications enabled" : "Enable notifications";
+  btn.setAttribute("aria-label", btn.title);
+}
+
+async function enableNotifications() {
+  if (!("Notification" in window)) {
+    showToast("This browser does not support notifications.", true);
+    return;
+  }
+  try {
+    const permission = await Notification.requestPermission();
+    updateNotificationButton();
+    if (permission === "granted") {
+      showToast("Notifications enabled on this device.");
+      if (serviceWorkerRegistration) {
+        serviceWorkerRegistration.showNotification("SimpleChat notifications enabled", {
+          body: "You can receive alerts while SimpleChat is open in the background.",
+          icon: "icons/icon-192.svg",
+          badge: "icons/icon-192.svg",
+          tag: "simplechat-ready"
+        }).catch(() => {});
+      }
+    } else {
+      showToast("Notifications are blocked. Allow them in browser settings.", true);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("Could not enable notifications.", true);
+  }
+}
+
+async function installApp() {
+  if (!installPromptEvent) {
+    showToast("Use your browser menu and choose Install app or Add to Home Screen.");
+    return;
+  }
+  installPromptEvent.prompt();
+  await installPromptEvent.userChoice;
+  installPromptEvent = null;
+  $("installAppBtn").classList.add("hidden");
+}
+
+function notifyUser(title, body, conversationId) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!document.hidden && document.hasFocus()) return;
+  const options = {
+    body,
+    icon: "icons/icon-192.svg",
+    badge: "icons/icon-192.svg",
+    tag: "simplechat-" + (conversationId || "message"),
+    data: { url: window.location.href, conversationId }
+  };
+  if (serviceWorkerRegistration?.showNotification) {
+    serviceWorkerRegistration.showNotification(title, options).catch(() => {
+      try { new Notification(title, options); } catch (_) {}
+    });
+  } else {
+    try { new Notification(title, options); } catch (_) {}
+  }
+}
+
 /* ---------- auth ---------- */
 async function withBusy(e, fn) {
   const btn = e.submitter;
@@ -107,6 +209,10 @@ async function boot() {
     b.setAttribute("aria-label", show ? "Hide password" : "Show password");
   });
   $("logoutBtn").onclick = () => db.auth.signOut();
+  $("enableNotificationsBtn").onclick = enableNotifications;
+  $("installAppBtn").onclick = installApp;
+  setupPWA();
+  updateNotificationButton();
   $("profileBtn").onclick = openProfile;
   $("saveProfileBtn").onclick = saveProfile;
   $("profileAvatarInput").onchange = previewAvatar;
@@ -487,6 +593,7 @@ function subscribeInbox() {
       const mine = m.sender_id === currentUser.id;
 
       if (!getChat(m.conversation_id)) { await loadChats(); } // brand-new conversation
+      if (!mine) notifyUser("New message", (getChat(m.conversation_id)?.name || "Someone") + ": " + String(m.body || "Sent you a message").slice(0, 120), m.conversation_id);
       else touchChat(m, !mine);
 
       if (m.conversation_id === activeId && !messages.some(x => x.id === m.id)) {
@@ -686,6 +793,7 @@ function subscribeCallSignals() {
           return;
         }
         incomingOffer = signal;
+        notifyUser("Incoming video call", (getChat(signal.conversation_id)?.name || "Someone") + " is calling you", signal.conversation_id);
         const chat = getChat(signal.conversation_id);
         $("callTitle").textContent = "Incoming video call";
         $("callStatus").textContent = chat ? chat.name + " is calling you" : "Someone is calling you";
@@ -739,10 +847,16 @@ async function prepareMedia() {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error("Video calls need a secure connection and a browser with camera support.");
   }
-  localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: { facingMode: "user" } });
+  localStream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true },
+    video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24, max: 30 } }
+  });
   remoteStream = new MediaStream();
   $("localVideo").srcObject = localStream;
   $("remoteVideo").srcObject = remoteStream;
+  $("remoteVideo").playsInline = true;
+  $("localVideo").playsInline = true;
+  $("localVideo").play().catch(() => {});
   $("remoteVideoPlaceholder").classList.remove("hidden");
   $("remoteVideoPlaceholder").textContent = "Connecting video…";
   peerConnection = new RTCPeerConnection(rtcConfig);
@@ -752,6 +866,7 @@ async function prepareMedia() {
       if (!remoteStream.getTracks().some(t => t.id === track.id)) remoteStream.addTrack(track);
     });
     $("remoteVideoPlaceholder").classList.add("hidden");
+    $("remoteVideo").play().catch(() => {});
   };
   peerConnection.onicecandidate = event => {
     if (event.candidate && currentCall) {
