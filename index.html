@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -108,6 +108,9 @@
               <h2 id="conversationName"></h2>
               <span id="conversationStatus" class="muted"></span>
             </div>
+            <div class="call-actions">
+              <button id="videoCallBtn" class="icon-btn call-btn" type="button" title="Start video call" aria-label="Start video call">📹</button>
+            </div>
           </div>
           <div class="messages-wrap">
             <div id="messages" class="messages"></div>
@@ -123,6 +126,27 @@
       </section>
     </div>
   </section>
+
+  <dialog id="callDialog" class="call-dialog">
+    <section class="call-shell">
+      <div class="dialog-head call-dialog-head">
+        <div><h3 id="callTitle">Video call</h3><p id="callStatus" class="muted">Connecting…</p></div>
+        <button id="callCloseBtn" class="icon-btn" type="button" aria-label="Close call window">×</button>
+      </div>
+      <div class="video-stage">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <div id="remoteVideoPlaceholder" class="video-placeholder">Waiting for the other person…</div>
+        <video id="localVideo" autoplay playsinline muted></video>
+      </div>
+      <div class="call-controls">
+        <button id="acceptCallBtn" class="primary hidden" type="button">Accept call</button>
+        <button id="declineCallBtn" class="call-control" type="button">Decline</button>
+        <button id="muteCallBtn" class="call-control hidden" type="button">Mute mic</button>
+        <button id="cameraCallBtn" class="call-control hidden" type="button">Turn camera off</button>
+        <button id="endCallBtn" class="call-end hidden" type="button">End call</button>
+      </div>
+    </section>
+  </dialog>
 
   <dialog id="profileDialog">
     <form method="dialog" id="profileForm">
@@ -161,6 +185,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>
