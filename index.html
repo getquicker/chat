@@ -4,11 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0866ff">
+  <meta name="description" content="SimpleChat — private conversations and video calls.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.svg">
   <title>SimpleChat</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
@@ -69,6 +76,8 @@
         <div class="sidebar-head">
           <h1>Chats</h1>
           <div class="sidebar-actions">
+            <button id="enableNotificationsBtn" class="icon-btn utility-btn" type="button" title="Enable notifications" aria-label="Enable notifications">🔔</button>
+            <button id="installAppBtn" class="icon-btn utility-btn hidden" type="button" title="Install SimpleChat" aria-label="Install SimpleChat">⬇</button>
             <button id="newChatBtn" class="icon-btn" title="New chat" aria-label="New chat">
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
@@ -185,6 +194,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
