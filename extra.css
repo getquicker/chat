@@ -1,0 +1,12 @@
+.call-actions{display:flex;align-items:center;gap:2px;margin-left:auto}
+.call-actions .icon-btn{width:40px;height:40px}
+body.audio-call-active #localVideo,body.audio-call-active #remoteVideo{opacity:0;pointer-events:none}
+body.audio-call-active .video-stage{background:linear-gradient(160deg,#0b1a2e,#12263f);min-height:280px}
+body.audio-call-active #remoteVideoPlaceholder{display:flex!important;align-items:center;justify-content:center;font-size:1.1rem;color:#fff}
+.contact-details-dialog{border:none;border-radius:20px;padding:0;max-width:360px;width:calc(100% - 32px);background:var(--surface,#fff);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.contact-details-dialog::backdrop{background:rgba(0,0,0,.45)}
+.details-body{display:flex;flex-direction:column;align-items:center;padding:8px 24px 28px;text-align:center}
+.details-body .profile-avatar{width:96px;height:96px;font-size:2rem;margin-bottom:12px}
+.details-body h2{margin:0;font-size:1.35rem;font-weight:650}
+.details-actions{display:flex;gap:16px}
+.details-action{border:none;background:var(--bg,#f0f2f5);color:var(--primary,#0084ff);border-radius:16px;padding:14px 22px;cursor:pointer;font-weight:600}
