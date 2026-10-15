@@ -592,9 +592,15 @@ function subscribeInbox() {
       const m = payload.new;
       const mine = m.sender_id === currentUser.id;
 
-      if (!getChat(m.conversation_id)) { await loadChats(); } // brand-new conversation
-      if (!mine) notifyUser("New message", (getChat(m.conversation_id)?.name || "Someone") + ": " + String(m.body || "Sent you a message").slice(0, 120), m.conversation_id);
-      else touchChat(m, !mine);
+      if (!getChat(m.conversation_id)) {
+        await loadChats(); // brand-new conversation
+      } else {
+        touchChat(m, !mine);
+      }
+      if (!mine) {
+        const senderName = getChat(m.conversation_id)?.name || "Someone";
+        notifyUser("New message", senderName + ": " + String(m.body || "Sent you a message").slice(0, 120), m.conversation_id);
+      }
 
       if (m.conversation_id === activeId && !messages.some(x => x.id === m.id)) {
         const stick = nearBottom();
