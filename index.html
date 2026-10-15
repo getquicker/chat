@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -138,8 +138,14 @@
               <span id="conversationStatus" class="muted"></span>
             </div>
             <div class="call-actions">
-              <button id="videoCallBtn" class="icon-btn call-btn" type="button" title="Start video call" aria-label="Start video call">
+              <button id="audioCallBtn" class="icon-btn call-btn" type="button" title="Audio call" aria-label="Audio call">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              </button>
+              <button id="videoCallBtn" class="icon-btn call-btn" type="button" title="Video call" aria-label="Video call">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              </button>
+              <button id="contactDetailsBtn" class="icon-btn call-btn" type="button" title="Contact details" aria-label="Contact details">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
               </button>
             </div>
           </div>
@@ -226,8 +232,28 @@
     </form>
   </dialog>
 
+  <dialog id="contactDetailsDialog" class="contact-details-dialog">
+    <div class="details-shell">
+      <div class="dialog-head">
+        <h3>Contact info</h3>
+        <button id="detailsCloseBtn" class="icon-btn" type="button" aria-label="Close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="details-body">
+        <div id="detailsAvatar" class="avatar profile-avatar">?</div>
+        <h2 id="detailsName">User</h2>
+        <p id="detailsUsername" class="muted"></p>
+        <div class="details-actions">
+          <button id="detailsAudioBtn" class="details-action" type="button">Audio</button>
+          <button id="detailsVideoBtn" class="details-action" type="button">Video</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js?v=11"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>
