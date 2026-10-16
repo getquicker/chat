@@ -1,13 +1,11 @@
 -- SimpleChat: search, start conversation, hide chat for current user only
 -- Run once in Supabase → SQL Editor → Run
 
--- Allow authenticated users to find other profiles (needed for New chat search)
 drop policy if exists "Profiles are viewable by authenticated users" on public.profiles;
 create policy "Profiles are viewable by authenticated users"
 on public.profiles for select to authenticated
 using (true);
 
--- Search users by username / display name
 create or replace function public.search_users(query text)
 returns table (
   id uuid,
@@ -33,7 +31,6 @@ $$;
 
 grant execute on function public.search_users(text) to authenticated;
 
--- Get existing 1:1 conversation or create a new one
 create or replace function public.get_or_create_conversation(other_user_id uuid)
 returns uuid
 language plpgsql
@@ -55,6 +52,7 @@ begin
     raise exception 'User not found';
   end if;
 
+  -- Conversation where both users are currently members
   select cm1.conversation_id into existing
   from public.conversation_members cm1
   join public.conversation_members cm2
@@ -64,26 +62,8 @@ begin
   limit 1;
 
   if existing is not null then
-    if not exists (
-      select 1 from public.conversation_members
-      where conversation_id = existing and user_id = me
-    ) then
-      insert into public.conversation_members (conversation_id, user_id)
-      values (existing, me);
-    end if;
     return existing;
   end if;
-
-  -- Also check if other user still has a conversation that I left
-  select cm2.conversation_id into existing
-  from public.conversation_members cm2
-  where cm2.user_id = other_user_id
-    and exists (
-      select 1 from public.messages m
-      where m.conversation_id = cm2.conversation_id
-        and (m.sender_id = me or m.sender_id = other_user_id)
-    )
-  limit 1;
 
   insert into public.conversations default values
   returning id into new_id;
@@ -97,7 +77,7 @@ $$;
 
 grant execute on function public.get_or_create_conversation(uuid) to authenticated;
 
--- Hide / delete chat for ME only (other user keeps the chat)
+-- Delete / hide for ME only — other user keeps the chat and messages
 create or replace function public.hide_conversation(p_conversation_id uuid)
 returns boolean
 language plpgsql
@@ -121,6 +101,7 @@ begin
   where conversation_id = p_conversation_id
     and user_id = auth.uid();
 
+  -- Only fully remove when nobody is left
   if not exists (
     select 1 from public.conversation_members
     where conversation_id = p_conversation_id
@@ -135,7 +116,6 @@ $$;
 
 grant execute on function public.hide_conversation(uuid) to authenticated;
 
--- Make delete_conversation = hide for me only (not wipe for everyone)
 create or replace function public.delete_conversation(p_conversation_id uuid)
 returns boolean
 language plpgsql
