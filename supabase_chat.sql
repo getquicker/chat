@@ -55,7 +55,6 @@ begin
     raise exception 'User not found';
   end if;
 
-  -- Existing conversation where both are (or were) members
   select cm1.conversation_id into existing
   from public.conversation_members cm1
   join public.conversation_members cm2
@@ -65,12 +64,26 @@ begin
   limit 1;
 
   if existing is not null then
-    -- Ensure I am a member again (if I had hidden/left)
-    insert into public.conversation_members (conversation_id, user_id)
-    values (existing, me)
-    on conflict do nothing;
+    if not exists (
+      select 1 from public.conversation_members
+      where conversation_id = existing and user_id = me
+    ) then
+      insert into public.conversation_members (conversation_id, user_id)
+      values (existing, me);
+    end if;
     return existing;
   end if;
+
+  -- Also check if other user still has a conversation that I left
+  select cm2.conversation_id into existing
+  from public.conversation_members cm2
+  where cm2.user_id = other_user_id
+    and exists (
+      select 1 from public.messages m
+      where m.conversation_id = cm2.conversation_id
+        and (m.sender_id = me or m.sender_id = other_user_id)
+    )
+  limit 1;
 
   insert into public.conversations default values
   returning id into new_id;
@@ -104,12 +117,10 @@ begin
     raise exception 'Conversation not found';
   end if;
 
-  -- Remove only my membership — do NOT delete messages or the other user
   delete from public.conversation_members
   where conversation_id = p_conversation_id
     and user_id = auth.uid();
 
-  -- Optional cleanup: if no members left, remove empty conversation + messages
   if not exists (
     select 1 from public.conversation_members
     where conversation_id = p_conversation_id
@@ -124,7 +135,7 @@ $$;
 
 grant execute on function public.hide_conversation(uuid) to authenticated;
 
--- Replace old hard-delete so client delete_conversation is also "for me only"
+-- Make delete_conversation = hide for me only (not wipe for everyone)
 create or replace function public.delete_conversation(p_conversation_id uuid)
 returns boolean
 language plpgsql
