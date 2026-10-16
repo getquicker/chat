@@ -32,14 +32,20 @@
     });
   }
 
-  async function ensurePlay(videoEl) {
+  async function ensurePlay(videoEl, forceUnmute) {
     if (!videoEl) return;
     try {
-      videoEl.muted = videoEl.id === "localVideo" ? true : videoEl.muted;
+      if (videoEl.id === "localVideo") {
+        videoEl.muted = true;
+      } else if (forceUnmute || videoEl.id === "remoteVideo") {
+        videoEl.muted = false;
+      }
       videoEl.playsInline = true;
       videoEl.setAttribute("playsinline", "");
       videoEl.setAttribute("autoplay", "");
-      await videoEl.play();
+      videoEl.setAttribute("webkit-playsinline", "");
+      const p = videoEl.play();
+      if (p && p.catch) p.catch(() => {});
     } catch (e) {
       console.warn("video play", e);
     }
@@ -49,8 +55,18 @@
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:19302" }
-    ]
+      { urls: "stun:stun.relay.metered.ca:80" },
+      {
+        urls: [
+          "turn:openrelay.metered.ca:80",
+          "turn:openrelay.metered.ca:443",
+          "turn:openrelay.metered.ca:443?transport=tcp"
+        ],
+        username: "openrelayproject",
+        credential: "openrelayproject"
+      }
+    ],
+    iceCandidatePoolSize: 10
   };
 
   let pc = null;
@@ -165,9 +181,10 @@
         localStream = await navigator.mediaDevices.getUserMedia({
           audio: { echoCancellation: true, noiseSuppression: true },
           video: withVideo
-            ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+            ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }
             : false
         });
+        localStream.getTracks().forEach((t) => { t.enabled = true; });
       } catch (err) {
         console.error(err);
         toast(
@@ -189,10 +206,13 @@
       localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
 
       pc.ontrack = (e) => {
-        remoteStream = e.streams[0];
+        const stream = e.streams[0] || new MediaStream([e.track]);
+        remoteStream = stream;
+        stream.getTracks().forEach((t) => { t.enabled = true; });
         if ($("remoteVideo")) {
-          $("remoteVideo").srcObject = remoteStream;
-          ensurePlay($("remoteVideo"));
+          $("remoteVideo").srcObject = stream;
+          $("remoteVideo").muted = false;
+          ensurePlay($("remoteVideo"), true);
         }
         if (withVideo && $("remoteVideoPlaceholder")) $("remoteVideoPlaceholder").classList.add("hidden");
         else if ($("remoteVideoPlaceholder")) {
@@ -200,6 +220,9 @@
           $("remoteVideoPlaceholder").classList.remove("hidden");
         }
         if ($("callStatus")) $("callStatus").textContent = "Connected";
+      };
+      pc.onconnectionstatechange = () => {
+        if (pc && $("callStatus")) $("callStatus").textContent = "Call: " + pc.connectionState;
       };
 
       pc.onicecandidate = (e) => {
@@ -265,6 +288,7 @@
           audio: true,
           video: withVideo ? { facingMode: "user" } : false
         });
+        localStream.getTracks().forEach((t) => { t.enabled = true; });
       } catch (err) {
         toast("Allow camera/mic to accept the call.", true);
         return;
@@ -279,12 +303,19 @@
       pc = new RTCPeerConnection(ICE);
       localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
       pc.ontrack = (e) => {
-        remoteStream = e.streams[0];
+        const stream = e.streams[0] || new MediaStream([e.track]);
+        remoteStream = stream;
+        stream.getTracks().forEach((t) => { t.enabled = true; });
         if ($("remoteVideo")) {
-          $("remoteVideo").srcObject = remoteStream;
-          ensurePlay($("remoteVideo"));
+          $("remoteVideo").srcObject = stream;
+          $("remoteVideo").muted = false;
+          ensurePlay($("remoteVideo"), true);
         }
         if (withVideo && $("remoteVideoPlaceholder")) $("remoteVideoPlaceholder").classList.add("hidden");
+        if ($("callStatus")) $("callStatus").textContent = "Connected";
+      };
+      pc.onconnectionstatechange = () => {
+        if (pc && $("callStatus")) $("callStatus").textContent = "Call: " + pc.connectionState;
       };
       pc.onicecandidate = (e) => {
         if (e.candidate) {
