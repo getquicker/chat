@@ -1,4 +1,4 @@
--- SimpleChat: search, start/reuse conversation, hide for me, fixed chat list names
+-- SimpleChat: search, reuse conversation after delete, hide for me, fixed names
 -- Run this FULL file in Supabase → SQL Editor → Run
 
 drop policy if exists "Profiles are viewable by authenticated users" on public.profiles;
@@ -31,7 +31,6 @@ $$;
 
 grant execute on function public.search_users(text) to authenticated;
 
--- Start chat: always reuse the same 1:1 conversation if it exists
 create or replace function public.get_or_create_conversation(other_user_id uuid)
 returns uuid
 language plpgsql
@@ -43,22 +42,17 @@ declare
   existing uuid;
   new_id uuid;
 begin
-  if me is null then
-    raise exception 'Not authenticated';
-  end if;
-  if other_user_id is null or other_user_id = me then
-    raise exception 'Invalid user';
-  end if;
+  if me is null then raise exception 'Not authenticated'; end if;
+  if other_user_id is null or other_user_id = me then raise exception 'Invalid user'; end if;
   if not exists (select 1 from public.profiles where id = other_user_id) then
     raise exception 'User not found';
   end if;
 
-  -- 1) Both currently members
+  -- Both currently members
   select cm1.conversation_id into existing
   from public.conversation_members cm1
   join public.conversation_members cm2
-    on cm2.conversation_id = cm1.conversation_id
-   and cm2.user_id = other_user_id
+    on cm2.conversation_id = cm1.conversation_id and cm2.user_id = other_user_id
   where cm1.user_id = me
   limit 1;
 
@@ -66,7 +60,7 @@ begin
     return existing;
   end if;
 
-  -- 2) I left earlier: other user still in a chat that has my messages (or theirs with me)
+  -- Reuse chat the other person still has (you deleted/left earlier)
   select cm.conversation_id into existing
   from public.conversation_members cm
   where cm.user_id = other_user_id
@@ -76,16 +70,13 @@ begin
         and (m.sender_id = me or m.sender_id = other_user_id)
     )
     and not exists (
-      -- avoid group chats if any: only 0 or 1 other members besides other_user
       select 1 from public.conversation_members cm3
       where cm3.conversation_id = cm.conversation_id
         and cm3.user_id not in (me, other_user_id)
     )
-  order by cm.conversation_id
   limit 1;
 
   if existing is not null then
-    -- Rejoin the same conversation
     insert into public.conversation_members (conversation_id, user_id)
     select existing, me
     where not exists (
@@ -95,20 +86,15 @@ begin
     return existing;
   end if;
 
-  -- 3) Brand new conversation
-  insert into public.conversations default values
-  returning id into new_id;
-
+  insert into public.conversations default values returning id into new_id;
   insert into public.conversation_members (conversation_id, user_id)
   values (new_id, me), (new_id, other_user_id);
-
   return new_id;
 end;
 $$;
 
 grant execute on function public.get_or_create_conversation(uuid) to authenticated;
 
--- Hide for me only
 create or replace function public.hide_conversation(p_conversation_id uuid)
 returns boolean
 language plpgsql
@@ -116,31 +102,21 @@ security definer
 set search_path = public
 as $$
 begin
-  if auth.uid() is null then
-    raise exception 'Not authenticated';
-  end if;
-
+  if auth.uid() is null then raise exception 'Not authenticated'; end if;
   if not exists (
     select 1 from public.conversation_members
-    where conversation_id = p_conversation_id
-      and user_id = auth.uid()
-  ) then
-    raise exception 'Conversation not found';
-  end if;
+    where conversation_id = p_conversation_id and user_id = auth.uid()
+  ) then raise exception 'Conversation not found'; end if;
 
   delete from public.conversation_members
-  where conversation_id = p_conversation_id
-    and user_id = auth.uid();
+  where conversation_id = p_conversation_id and user_id = auth.uid();
 
-  -- Do NOT delete messages while the other person remains
   if not exists (
-    select 1 from public.conversation_members
-    where conversation_id = p_conversation_id
+    select 1 from public.conversation_members where conversation_id = p_conversation_id
   ) then
     delete from public.messages where conversation_id = p_conversation_id;
     delete from public.conversations where id = p_conversation_id;
   end if;
-
   return true;
 end;
 $$;
@@ -160,8 +136,7 @@ $$;
 
 grant execute on function public.delete_conversation(uuid) to authenticated;
 
--- Chat list: resolve peer from remaining member OR from message history
--- so the other person never sees "Unknown user" after you hide the chat
+-- Peer name from remaining member OR last non-me message sender (never Unknown)
 create or replace function public.get_my_chats()
 returns table (
   conversation_id uuid,
@@ -187,21 +162,11 @@ as $$
     select
       mc.conversation_id,
       coalesce(
-        (
-          select cm2.user_id
-          from public.conversation_members cm2
-          where cm2.conversation_id = mc.conversation_id
-            and cm2.user_id <> auth.uid()
-          limit 1
-        ),
-        (
-          select m.sender_id
-          from public.messages m
-          where m.conversation_id = mc.conversation_id
-            and m.sender_id <> auth.uid()
-          order by m.created_at desc
-          limit 1
-        )
+        (select cm2.user_id from public.conversation_members cm2
+          where cm2.conversation_id = mc.conversation_id and cm2.user_id <> auth.uid() limit 1),
+        (select m.sender_id from public.messages m
+          where m.conversation_id = mc.conversation_id and m.sender_id <> auth.uid()
+          order by m.created_at desc limit 1)
       ) as other_user_id
     from my_convs mc
   ),
@@ -224,17 +189,7 @@ as $$
     lm.last_message,
     lm.last_message_at,
     lm.last_sender_id,
-    coalesce((
-      select count(*)::bigint
-      from public.messages m2
-      where m2.conversation_id = p.conversation_id
-        and m2.sender_id <> auth.uid()
-        and m2.created_at > coalesce(
-          (select cm.joined_at from public.conversation_members cm
-           where cm.conversation_id = p.conversation_id and cm.user_id = auth.uid()),
-          '-infinity'::timestamptz
-        )
-    ), 0) as unread_count
+    0::bigint as unread_count
   from peer p
   left join public.profiles pr on pr.id = p.other_user_id
   left join last_msg lm on lm.conversation_id = p.conversation_id
