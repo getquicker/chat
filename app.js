@@ -15,8 +15,11 @@
     fixes.src = "fixes.js?v=30";
     document.head.appendChild(fixes);
     const overlay = document.createElement("script");
-    overlay.src = "call-overlay.js?v=1";
+    overlay.src = "call-overlay.js?v=2";
     document.head.appendChild(overlay);
+    const ux = document.createElement("script");
+    ux.src = "ux-polish.js?v=1";
+    document.head.appendChild(ux);
   } catch(e) {
     fail("Failed to load app: " + e.message + ". Hard-refresh (Ctrl+Shift+R).");
   }
