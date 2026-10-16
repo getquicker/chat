@@ -1,199 +1,192 @@
-// Camera controls and small compatibility fixes for SimpleChat.
+// SimpleChat login reliability (v3)
 (() => {
-  const byId = (id) => document.getElementById(id);
-  const dialog = byId("callDialog");
-  const stage = document.querySelector(".video-stage");
-  const localVideo = byId("localVideo");
-  const flipButton = byId("cameraFlipBtn");
-  if (!dialog || !stage || !localVideo || !flipButton) return;
+  const $ = (id) => document.getElementById(id);
 
-  const controls = document.querySelector(".call-controls");
-  let previewSize = "medium";
-  let mirrored = true;
-  let switching = false;
+  function setAuthMessage(message, error = true) {
+    const el = $("authMessage");
+    if (!el) return;
+    el.textContent = message || "";
+    el.style.color = error ? "var(--danger)" : "var(--primary)";
+  }
 
   function toast(message, isError = false) {
-    const el = byId("toast");
+    const el = $("toast");
     if (!el) return;
     el.textContent = message;
     el.className = "toast show" + (isError ? " error" : "");
-    window.clearTimeout(toast.timer);
-    toast.timer = window.setTimeout(() => { el.className = "toast"; }, 2600);
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { el.className = "toast"; }, 2800);
   }
 
-  // Add optional controls without requiring changes to the bundled app.
-  let sizeButton = byId("cameraSizeBtn");
-  if (!sizeButton && controls) {
-    sizeButton = document.createElement("button");
-    sizeButton.id = "cameraSizeBtn";
-    sizeButton.type = "button";
-    sizeButton.className = "call-control camera-extra-control";
-    sizeButton.title = "Change self-view size";
-    controls.insertBefore(sizeButton, flipButton);
+  // Prevent native POST (breaks on GitHub Pages)
+  function hardenForms() {
+    ["loginForm", "signupForm"].forEach((id) => {
+      const form = $(id);
+      if (!form) return;
+      form.addEventListener("submit", (e) => e.preventDefault(), true);
+    });
   }
-  let mirrorButton = byId("cameraMirrorBtn");
-  if (!mirrorButton && controls) {
-    mirrorButton = document.createElement("button");
-    mirrorButton.id = "cameraMirrorBtn";
-    mirrorButton.type = "button";
-    mirrorButton.className = "call-control camera-extra-control";
-    mirrorButton.title = "Mirror your self-view";
-    controls.insertBefore(mirrorButton, flipButton);
+  hardenForms();
+  document.addEventListener("DOMContentLoaded", hardenForms);
+
+  function client() {
+    if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return null;
+    return window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
   }
 
-  function liveVideoTrack() {
-    const stream = localVideo.srcObject;
-    return stream && stream.getVideoTracks().find(t => t.readyState === "live");
-  }
-
-  function applyPreviewSettings() {
-    localVideo.dataset.previewSize = previewSize;
-    localVideo.classList.toggle("is-mirrored", mirrored);
-    if (sizeButton) {
-      const labels = { small: "Preview: Small", medium: "Preview: Medium", large: "Preview: Large" };
-      sizeButton.textContent = labels[previewSize];
-      sizeButton.setAttribute("aria-label", "Self-view size: " + previewSize + ". Click to change size.");
+  async function ensureProfile(db, user) {
+    const { data: existing } = await db.from("profiles").select("*").eq("id", user.id).maybeSingle();
+    if (existing) return existing;
+    const meta = user.user_metadata || {};
+    let username = (meta.username || ((user.email || "user").split("@")[0] + "_" + String(user.id).replace(/-/g, "").slice(0, 6)))
+      .toLowerCase().replace(/[^a-z0-9_]/g, "_").slice(0, 24) || "user";
+    const row = {
+      id: user.id,
+      username,
+      display_name: meta.display_name || meta.full_name || username,
+      avatar_url: meta.avatar_url || null
+    };
+    const { data, error } = await db.from("profiles").upsert(row).select("*").maybeSingle();
+    if (error) {
+      const again = await db.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      if (again.data) return again.data;
+      throw error;
     }
-    if (mirrorButton) {
-      mirrorButton.textContent = mirrored ? "Mirror: On" : "Mirror: Off";
-      mirrorButton.setAttribute("aria-pressed", String(mirrored));
-    }
+    return data;
   }
 
-  function updateVisibility() {
-    const track = liveVideoTrack();
-    const hasVideo = !!track && track.enabled;
-    const isOpen = dialog.open && !document.body.classList.contains("audio-call-active");
-    flipButton.classList.toggle("hidden", !isOpen || !hasVideo);
-    if (sizeButton) sizeButton.classList.toggle("hidden", !isOpen || !hasVideo);
-    if (mirrorButton) mirrorButton.classList.toggle("hidden", !isOpen || !hasVideo);
-  }
-
-  if (sizeButton) sizeButton.addEventListener("click", () => {
-    previewSize = previewSize === "small" ? "medium" : previewSize === "medium" ? "large" : "small";
-    applyPreviewSettings();
-  });
-  if (mirrorButton) mirrorButton.addEventListener("click", () => {
-    mirrored = !mirrored;
-    applyPreviewSettings();
-  });
-
-  function getPeerConnection() {
+  async function resolveEmail(db, identifier) {
+    if (identifier.includes("@")) return identifier;
     try {
-      if (typeof peerConnection !== "undefined" && peerConnection) return peerConnection;
-    } catch (_) {}
-    return window.peerConnection || window.pc || null;
+      const a = await db.rpc("email_for_username", { wanted_username: identifier });
+      if (!a.error && a.data) return a.data;
+      const b = await db.rpc("email_for_username", { p_username: identifier });
+      if (!b.error && b.data) return b.data;
+    } catch (e) { console.warn(e); }
+    return null;
   }
 
-  async function switchCamera() {
-    if (switching) return;
-    const stream = localVideo.srcObject;
-    const oldTrack = liveVideoTrack();
-    if (!stream || !oldTrack) {
-      toast("Turn your camera on before switching.", true);
+  async function robustLogin(e) {
+    e.preventDefault();
+    setAuthMessage("");
+    const db = client();
+    if (!db) {
+      setAuthMessage("Supabase is not configured. Check config.js.");
       return;
     }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      toast("Camera switching is not supported by this browser.", true);
+    const identifier = ($("loginIdentifier")?.value || "").trim().toLowerCase();
+    const password = $("loginPassword")?.value || "";
+    if (!identifier || !password) {
+      setAuthMessage("Enter your username/email and password.");
       return;
     }
-
-    switching = true;
-    flipButton.disabled = true;
-    flipButton.textContent = "Switching…";
-    const oldSettings = oldTrack.getSettings ? oldTrack.getSettings() : {};
-    const currentFacing = oldSettings.facingMode || "";
-    const nextFacing = currentFacing === "environment" ? "user" : "environment";
-    let replacementStream = null;
-
-    try {
-      let targetDevice = null;
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const cameras = devices.filter(d => d.kind === "videoinput");
-      if (cameras.length > 1) {
-        const currentId = oldSettings.deviceId || "";
-        const otherCameras = cameras.filter(d => d.deviceId && d.deviceId !== currentId);
-        const desiredLabel = nextFacing === "environment" ? /back|rear|environment|world/i : /front|user|facetime|self/i;
-        targetDevice = otherCameras.find(d => desiredLabel.test(d.label)) || otherCameras[0];
+    let email = identifier;
+    if (!identifier.includes("@")) {
+      email = await resolveEmail(db, identifier);
+      if (!email) {
+        setAuthMessage("Username not found. Try logging in with your email, or run the database SQL (email_for_username).");
+        return;
       }
-
-      const videoConstraints = targetDevice
-        ? { deviceId: { exact: targetDevice.deviceId } }
-        : { facingMode: { ideal: nextFacing } };
-
-      replacementStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: videoConstraints });
-      const newTrack = replacementStream.getVideoTracks()[0];
-      if (!newTrack) throw new Error("No video track returned");
-
-      const pc = getPeerConnection();
-      const sender = pc && pc.getSenders ? pc.getSenders().find(s => s.track && s.track.kind === "video" && (s.track === oldTrack || !s.track)) : null;
-
-      if (sender) {
-        await sender.replaceTrack(newTrack);
+    }
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error) {
+      const msg = (error.message || "").toLowerCase();
+      if (msg.includes("confirm")) {
+        setAuthMessage("Email not confirmed. Check inbox, or disable email confirmation in Supabase Auth settings for testing.");
+      } else if (msg.includes("invalid") || msg.includes("credentials")) {
+        setAuthMessage("Invalid username/email or password.");
+      } else if (msg.includes("api key") || msg.includes("jwt") || error.status === 401) {
+        setAuthMessage("Auth key error. In config.js set the anon/publishable key from Supabase → Project Settings → API.");
       } else {
-        // Keep the existing outgoing track if the bundled call code doesn't expose its sender.
-        try {
-          await oldTrack.applyConstraints({ facingMode: { ideal: nextFacing } });
-          replacementStream.getTracks().forEach(t => t.stop());
-          replacementStream = null;
-          toast("Camera switched.");
-          return;
-        } catch (_) {
-          throw new Error("Could not update the outgoing camera track");
-        }
+        setAuthMessage(error.message || "Login failed.");
       }
-
-      stream.removeTrack(oldTrack);
-      stream.addTrack(newTrack);
-      localVideo.srcObject = stream;
-      oldTrack.stop();
-      replacementStream = null; // the new track now belongs to the call stream
-      toast("Camera switched.");
-    } catch (error) {
-      console.error("Camera switch failed:", error);
-      toast(error && error.name === "NotAllowedError"
-        ? "Camera permission was denied. Allow camera access and try again."
-        : "Could not switch camera on this device. Try again or check camera permission.", true);
-    } finally {
-      if (replacementStream) replacementStream.getTracks().forEach(t => t.stop());
-      switching = false;
-      flipButton.disabled = false;
-      flipButton.textContent = "Switch camera";
-      applyPreviewSettings();
-      updateVisibility();
+      console.error("login", error);
+      return;
+    }
+    try {
+      await ensureProfile(db, data.user);
+      toast("Logged in");
+    } catch (err) {
+      console.error(err);
+      setAuthMessage("Logged in, but profile is missing. Run supabase.sql so profiles + policies exist.");
     }
   }
 
-  flipButton.addEventListener("click", switchCamera);
-  ["videoCallBtn", "acceptCallBtn", "cameraCallBtn"].forEach(id => {
-    const button = byId(id);
-    if (button) button.addEventListener("click", () => window.setTimeout(updateVisibility, 350));
-  });
-  dialog.addEventListener("close", updateVisibility);
-  dialog.addEventListener("toggle", updateVisibility);
-  document.addEventListener("visibilitychange", updateVisibility);
-  window.setInterval(updateVisibility, 800);
-  applyPreviewSettings();
-  updateVisibility();
-
-  // GitHub Pages route convenience; actual data access is protected by Supabase RLS.
-  const loginPage = location.pathname.endsWith("/login.html");
-  let unauthenticatedTicks = 0;
-  window.setInterval(() => {
-    const authView = byId("authView");
-    const appView = byId("appView");
-    if (!authView || !appView) return;
-    const signedInUi = !appView.classList.contains("hidden");
-    const loginUi = !authView.classList.contains("hidden");
-    if (loginPage && signedInUi) {
-      location.replace(new URL("index.html", location.href).href);
+  async function robustSignup(e) {
+    e.preventDefault();
+    setAuthMessage("");
+    const db = client();
+    if (!db) {
+      setAuthMessage("Supabase is not configured. Check config.js.");
       return;
     }
-    if (!loginPage && loginUi && !signedInUi) {
-      unauthenticatedTicks += 1;
-      if (unauthenticatedTicks >= 12) location.replace(new URL("login.html", location.href).href);
-    } else {
-      unauthenticatedTicks = 0;
+    const username = ($("signupUsername")?.value || "").trim().toLowerCase();
+    const email = ($("signupEmail")?.value || "").trim().toLowerCase();
+    const password = $("signupPassword")?.value || "";
+    let displayName = ($("signupDisplayName")?.value || "").trim();
+    if (!displayName || displayName === password) displayName = username;
+    if (!/^[a-z0-9_]{3,24}$/.test(username)) {
+      setAuthMessage("Username must be 3–24 characters using letters, numbers or underscore.");
+      return;
     }
-  }, 300);
+    if (!email || !password) {
+      setAuthMessage("Email and password are required.");
+      return;
+    }
+    try {
+      const { data: available, error: checkError } = await db.rpc("username_available", { wanted_username: username });
+      if (!checkError && available === false) {
+        setAuthMessage("That username is already taken.");
+        return;
+      }
+    } catch (_) {}
+    const { data, error } = await db.auth.signUp({
+      email, password,
+      options: { data: { username, display_name: displayName } }
+    });
+    if (error) {
+      setAuthMessage(error.message);
+      console.error("signup", error);
+      return;
+    }
+    if (data.session && data.user) {
+      try { await ensureProfile(db, data.user); } catch (err) { console.error(err); }
+      toast("Account created");
+    } else {
+      setAuthMessage("Account created. Confirm your email, then log in. For testing, disable email confirmation in Supabase Auth → Email.", false);
+      $("loginTab")?.click();
+    }
+  }
+
+  function bind() {
+    const loginForm = $("loginForm");
+    const signupForm = $("signupForm");
+    if (!loginForm || !window.supabase || !window.SUPABASE_URL) return false;
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const btn = e.submitter;
+      if (btn) { btn.disabled = true; btn.classList.add("loading"); }
+      Promise.resolve(robustLogin(e)).finally(() => {
+        if (btn) { btn.disabled = false; btn.classList.remove("loading"); }
+      });
+    });
+    if (signupForm) {
+      signupForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const btn = e.submitter;
+        if (btn) { btn.disabled = true; btn.classList.add("loading"); }
+        Promise.resolve(robustSignup(e)).finally(() => {
+          if (btn) { btn.disabled = false; btn.classList.remove("loading"); }
+        });
+      });
+    }
+    console.info("SimpleChat auth fixes active");
+    return true;
+  }
+
+  let tries = 0;
+  const t = setInterval(() => {
+    tries += 1;
+    if (bind() || tries > 50) clearInterval(t);
+  }, 120);
 })();
