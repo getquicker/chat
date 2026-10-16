@@ -12,7 +12,7 @@
     s.textContent = code;
     document.head.appendChild(s);
     const fixes = document.createElement("script");
-    fixes.src = "fixes.js?v=12";
+    fixes.src = "fixes.js?v=20";
     document.head.appendChild(fixes);
   } catch(e) {
     fail("Failed to load app: " + e.message + ". Hard-refresh (Ctrl+Shift+R).");
