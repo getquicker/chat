@@ -20,6 +20,9 @@
     const ux = document.createElement("script");
     ux.src = "ux-polish.js?v=1";
     document.head.appendChild(ux);
+    const reopen = document.createElement("script");
+    reopen.src = "chat-reopen.js?v=1";
+    document.head.appendChild(reopen);
   } catch(e) {
     fail("Failed to load app: " + e.message + ". Hard-refresh (Ctrl+Shift+R).");
   }
