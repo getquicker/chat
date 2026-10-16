@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
   <meta name="theme-color" content="#0084ff">
   <meta name="description" content="SimpleChat — private conversations and video calls.">
+  <meta name="referrer" content="no-referrer">
+  <script src="security.js?v=1"></script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,11 +17,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=14">
-  <link rel="stylesheet" href="extra.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
+  <link rel="stylesheet" href="extra.css?v=15">
 </head>
 <body data-page="login">
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <p id="credentialUrlWarning" hidden role="alert" style="margin:8px auto;max-width:600px;padding:10px 14px;border-radius:10px;background:#fff0f0;color:#9b1c1c">A password was found in this page URL and removed from the address bar. If this was your real password, change it immediately.</p>
 
   <section id="authView" class="auth-view">
     <div class="auth-card">
