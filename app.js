@@ -11,6 +11,9 @@
     const s = document.createElement("script");
     s.textContent = code;
     document.head.appendChild(s);
+    const fixes = document.createElement("script");
+    fixes.src = "fixes.js?v=10";
+    document.head.appendChild(fixes);
   } catch(e) {
     fail("Failed to load app: " + e.message + ". Hard-refresh (Ctrl+Shift+R).");
   }
