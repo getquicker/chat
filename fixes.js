@@ -39,7 +39,7 @@
       try {
         await oldTrack.applyConstraints({ facingMode: { exact: nextFacing } });
         const now = oldTrack.getSettings ? oldTrack.getSettings() : {};
-        if (!settings.facingMode || now.facingMode !== settings.facingMode) {
+        if (settings.facingMode && now.facingMode !== settings.facingMode) {
           toast("Camera switched.");
           return;
         }
