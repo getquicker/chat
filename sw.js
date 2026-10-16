@@ -1,4 +1,4 @@
-const CACHE_NAME = "simplechat-shell-v2";
+const CACHE_NAME = "simplechat-shell-v3";
 const APP_SHELL = [
   "/chat/",
   "/chat/index.html",
