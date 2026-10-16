@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0084ff">
   <meta name="description" content="SimpleChat — private conversations and video calls.">
   <meta name="referrer" content="no-referrer">
-  <script src="security.js?v=1"></script>
+  <script src="security.js?v=2"></script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17,8 +17,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=16">
-  <link rel="stylesheet" href="extra.css?v=16">
+  <link rel="stylesheet" href="style.css?v=20">
+  <link rel="stylesheet" href="extra.css?v=20">
 </head>
 <body data-page="app">
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -37,7 +37,7 @@
         <button id="signupTab" class="tab" type="button" role="tab" aria-selected="false">Sign up</button>
       </div>
 
-      <form id="loginForm" method="post">
+      <form id="loginForm" method="post" action="#" autocomplete="on">
         <label for="loginIdentifier">Username or email</label>
         <input id="loginIdentifier" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required placeholder="username or you@example.com">
         <label for="loginPassword">Password</label>
@@ -59,7 +59,7 @@
         <span>Continue with Google</span>
       </button>
 
-      <form id="signupForm" class="hidden" method="post">
+      <form id="signupForm" class="hidden" method="post" action="#" autocomplete="on">
         <label for="signupDisplayName">Full name</label>
         <input id="signupDisplayName" name="name" autocomplete="name" maxlength="60" placeholder="e.g. Alex Rivera">
         <label for="signupUsername">Username</label>
@@ -258,7 +258,7 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="config.js?v=14"></script>
-  <script src="app.js?v=15"></script>
+  <script src="config.js?v=16"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>
