@@ -1,4 +1,4 @@
-// SimpleChat fixes: profile, new chat, delete-for-me
+// SimpleChat: video call + professional delete
 (() => {
   const $ = (id) => document.getElementById(id);
 
@@ -9,14 +9,6 @@
     el.className = "toast show" + (isError ? " error" : "");
     clearTimeout(toast._t);
     toast._t = setTimeout(() => { el.className = "toast"; }, 3200);
-  }
-
-  function escapeHtml(s) {
-    return String(s || "")
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
   }
 
   function waitFor(fn, tries) {
@@ -36,9 +28,37 @@
             resolve(false);
           }
         }
-      }, 100);
+      }, 80);
     });
   }
+
+  async function ensurePlay(videoEl) {
+    if (!videoEl) return;
+    try {
+      videoEl.muted = videoEl.id === "localVideo" ? true : videoEl.muted;
+      videoEl.playsInline = true;
+      videoEl.setAttribute("playsinline", "");
+      videoEl.setAttribute("autoplay", "");
+      await videoEl.play();
+    } catch (e) {
+      console.warn("video play", e);
+    }
+  }
+
+  const ICE = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" }
+    ]
+  };
+
+  let pc = null;
+  let localStream = null;
+  let remoteStream = null;
+  let current = null;
+  let incoming = null;
+  let queuedIce = [];
 
   async function patch() {
     if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_ANON_KEY) return false;
@@ -47,232 +67,480 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
 
-    async function sessionUser() {
+    async function me() {
       const { data } = await client.auth.getSession();
       return data && data.session && data.session.user;
     }
 
-    // ---- Delete chat for ME only (capture phase beats app handler) ----
+    async function sendSignal(conversationId, recipientId, type, payload) {
+      const user = await me();
+      const { error } = await client.from("call_signals").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        recipient_id: recipientId,
+        type: type === "ice" ? "ice-candidate" : type,
+        payload: payload || {}
+      });
+      if (error) throw error;
+    }
+
+    async function getPeerId(conversationId, myId) {
+      const { data } = await client
+        .from("conversation_members")
+        .select("user_id")
+        .eq("conversation_id", conversationId);
+      return (data || []).map((m) => m.user_id).find((id) => id !== myId) || null;
+    }
+
+    function cleanupMedia() {
+      if (pc) {
+        try {
+          pc.onicecandidate = null;
+          pc.ontrack = null;
+          pc.close();
+        } catch (_) {}
+      }
+      pc = null;
+      if (localStream) localStream.getTracks().forEach((t) => t.stop());
+      localStream = null;
+      remoteStream = null;
+      queuedIce = [];
+      current = null;
+      incoming = null;
+      if ($("localVideo")) $("localVideo").srcObject = null;
+      if ($("remoteVideo")) $("remoteVideo").srcObject = null;
+      document.body.classList.remove("audio-call-active");
+    }
+
+    async function endCall(notify) {
+      const c = current;
+      if (notify && c) {
+        try {
+          await sendSignal(c.conversationId, c.peerId, "hangup", {});
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      cleanupMedia();
+      if ($("acceptCallBtn")) $("acceptCallBtn").classList.add("hidden");
+      if ($("declineCallBtn")) $("declineCallBtn").classList.add("hidden");
+      if ($("muteCallBtn")) $("muteCallBtn").classList.add("hidden");
+      if ($("cameraCallBtn")) $("cameraCallBtn").classList.add("hidden");
+      if ($("endCallBtn")) $("endCallBtn").classList.add("hidden");
+      if ($("remoteVideoPlaceholder")) {
+        $("remoteVideoPlaceholder").classList.remove("hidden");
+        $("remoteVideoPlaceholder").textContent = "Call ended";
+      }
+      try {
+        if ($("callDialog") && $("callDialog").open) $("callDialog").close();
+      } catch (_) {}
+    }
+
+    async function startCall(withVideo) {
+      const user = await me();
+      if (!user) {
+        toast("Log in first.", true);
+        return;
+      }
+      const item = document.querySelector(".chat-item.active");
+      const conversationId = item && item.getAttribute("data-id");
+      if (!conversationId) {
+        toast("Open a chat first.", true);
+        return;
+      }
+      if (current) {
+        toast("Already in a call.", true);
+        return;
+      }
+
+      const peerId = await getPeerId(conversationId, user.id);
+      if (!peerId) {
+        toast("Could not find the other person.", true);
+        return;
+      }
+
+      const peerName = ($("conversationName") && $("conversationName").textContent) || "Contact";
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+          video: withVideo
+            ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }
+            : false
+        });
+      } catch (err) {
+        console.error(err);
+        toast(
+          withVideo
+            ? "Allow camera & microphone in the browser address bar, then try again."
+            : "Allow microphone access, then try again.",
+          true
+        );
+        return;
+      }
+
+      document.body.classList.toggle("audio-call-active", !withVideo);
+      if ($("localVideo")) {
+        $("localVideo").srcObject = localStream;
+        await ensurePlay($("localVideo"));
+      }
+
+      pc = new RTCPeerConnection(ICE);
+      localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
+
+      pc.ontrack = (e) => {
+        remoteStream = e.streams[0];
+        if ($("remoteVideo")) {
+          $("remoteVideo").srcObject = remoteStream;
+          ensurePlay($("remoteVideo"));
+        }
+        if (withVideo && $("remoteVideoPlaceholder")) $("remoteVideoPlaceholder").classList.add("hidden");
+        else if ($("remoteVideoPlaceholder")) {
+          $("remoteVideoPlaceholder").textContent = "Connected";
+          $("remoteVideoPlaceholder").classList.remove("hidden");
+        }
+        if ($("callStatus")) $("callStatus").textContent = "Connected";
+      };
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          sendSignal(conversationId, peerId, "ice-candidate", e.candidate.toJSON()).catch(console.error);
+        }
+      };
+
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: !!withVideo
+      });
+      await pc.setLocalDescription(offer);
+
+      current = { conversationId: conversationId, peerId: peerId, video: withVideo };
+
+      try {
+        await sendSignal(conversationId, peerId, "offer", {
+          type: offer.type,
+          sdp: offer.sdp,
+          callMode: withVideo ? "video" : "audio"
+        });
+      } catch (err) {
+        console.error(err);
+        toast(
+          (err.message || "").indexOf("relation") >= 0
+            ? "Call table missing. Run supabase_video.sql in Supabase."
+            : "Could not start call: " + (err.message || "signaling failed"),
+          true
+        );
+        await endCall(false);
+        return;
+      }
+
+      if ($("callTitle")) $("callTitle").textContent = withVideo ? "Video calling…" : "Audio calling…";
+      if ($("callStatus")) $("callStatus").textContent = peerName;
+      if ($("acceptCallBtn")) $("acceptCallBtn").classList.add("hidden");
+      if ($("declineCallBtn")) $("declineCallBtn").classList.add("hidden");
+      if ($("muteCallBtn")) $("muteCallBtn").classList.remove("hidden");
+      if ($("cameraCallBtn")) {
+        if (withVideo) $("cameraCallBtn").classList.remove("hidden");
+        else $("cameraCallBtn").classList.add("hidden");
+      }
+      if ($("endCallBtn")) $("endCallBtn").classList.remove("hidden");
+      if ($("remoteVideoPlaceholder")) {
+        $("remoteVideoPlaceholder").textContent = "Calling…";
+        $("remoteVideoPlaceholder").classList.remove("hidden");
+      }
+      try {
+        $("callDialog").showModal();
+      } catch (_) {}
+    }
+
+    async function acceptCall() {
+      const offer = incoming;
+      if (!offer) return;
+      incoming = null;
+      const mode = (offer.payload && offer.payload.callMode) || "video";
+      const withVideo = mode !== "audio";
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: withVideo ? { facingMode: "user" } : false
+        });
+      } catch (err) {
+        toast("Allow camera/mic to accept the call.", true);
+        return;
+      }
+
+      document.body.classList.toggle("audio-call-active", !withVideo);
+      if ($("localVideo")) {
+        $("localVideo").srcObject = localStream;
+        await ensurePlay($("localVideo"));
+      }
+
+      pc = new RTCPeerConnection(ICE);
+      localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
+      pc.ontrack = (e) => {
+        remoteStream = e.streams[0];
+        if ($("remoteVideo")) {
+          $("remoteVideo").srcObject = remoteStream;
+          ensurePlay($("remoteVideo"));
+        }
+        if (withVideo && $("remoteVideoPlaceholder")) $("remoteVideoPlaceholder").classList.add("hidden");
+      };
+      pc.onicecandidate = (e) => {
+        if (e.candidate) {
+          sendSignal(offer.conversation_id, offer.sender_id, "ice-candidate", e.candidate.toJSON()).catch(console.error);
+        }
+      };
+
+      const remoteDesc =
+        offer.payload && offer.payload.sdp
+          ? { type: offer.payload.type, sdp: offer.payload.sdp }
+          : offer.payload;
+      await pc.setRemoteDescription(remoteDesc);
+      for (const c of queuedIce) {
+        try {
+          await pc.addIceCandidate(c);
+        } catch (_) {}
+      }
+      queuedIce = [];
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      current = { conversationId: offer.conversation_id, peerId: offer.sender_id, video: withVideo };
+      await sendSignal(offer.conversation_id, offer.sender_id, "answer", {
+        type: answer.type,
+        sdp: answer.sdp
+      });
+
+      if ($("callTitle")) $("callTitle").textContent = withVideo ? "Video call" : "Audio call";
+      if ($("callStatus")) $("callStatus").textContent = "Connected";
+      if ($("acceptCallBtn")) $("acceptCallBtn").classList.add("hidden");
+      if ($("declineCallBtn")) $("declineCallBtn").classList.add("hidden");
+      if ($("muteCallBtn")) $("muteCallBtn").classList.remove("hidden");
+      if ($("cameraCallBtn")) {
+        if (withVideo) $("cameraCallBtn").classList.remove("hidden");
+        else $("cameraCallBtn").classList.add("hidden");
+      }
+      if ($("endCallBtn")) $("endCallBtn").classList.remove("hidden");
+    }
+
+    let channel = null;
+    async function subscribe() {
+      const user = await me();
+      if (!user) return;
+      if (channel) client.removeChannel(channel);
+      channel = client
+        .channel("calls-fix-" + user.id)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "call_signals", filter: "recipient_id=eq." + user.id },
+          async (payload) => {
+            const sig = payload.new;
+            if (!sig) return;
+            if (sig.type === "offer") {
+              incoming = sig;
+              const mode = (sig.payload && sig.payload.callMode) || "video";
+              if ($("callTitle"))
+                $("callTitle").textContent = mode === "audio" ? "Incoming audio call" : "Incoming video call";
+              if ($("callStatus")) $("callStatus").textContent = "Someone is calling you";
+              document.body.classList.toggle("audio-call-active", mode === "audio");
+              if ($("acceptCallBtn")) $("acceptCallBtn").classList.remove("hidden");
+              if ($("declineCallBtn")) $("declineCallBtn").classList.remove("hidden");
+              if ($("muteCallBtn")) $("muteCallBtn").classList.add("hidden");
+              if ($("cameraCallBtn")) $("cameraCallBtn").classList.add("hidden");
+              if ($("endCallBtn")) $("endCallBtn").classList.add("hidden");
+              try {
+                $("callDialog").showModal();
+              } catch (_) {}
+            } else if (sig.type === "answer" && pc && current) {
+              try {
+                const desc =
+                  sig.payload && sig.payload.sdp
+                    ? { type: sig.payload.type, sdp: sig.payload.sdp }
+                    : sig.payload;
+                await pc.setRemoteDescription(desc);
+                if ($("callStatus")) $("callStatus").textContent = "Connected";
+              } catch (e) {
+                console.error(e);
+              }
+            } else if ((sig.type === "ice-candidate" || sig.type === "ice") && pc) {
+              try {
+                const candidate = new RTCIceCandidate(sig.payload);
+                if (pc.remoteDescription) await pc.addIceCandidate(candidate);
+                else queuedIce.push(candidate);
+              } catch (e) {
+                console.error(e);
+              }
+            } else if (sig.type === "hangup" || sig.type === "decline") {
+              if (current || incoming) {
+                await endCall(false);
+                toast(sig.type === "decline" ? "Call declined." : "Call ended.");
+              }
+            }
+          }
+        )
+        .subscribe();
+    }
+    subscribe();
+    client.auth.onAuthStateChange(() => subscribe());
+
+    function bind(id, fn) {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener(
+        "click",
+        (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          fn();
+        },
+        true
+      );
+    }
+    bind("audioCallBtn", () => startCall(false));
+    bind("videoCallBtn", () => startCall(true));
+    bind("detailsAudioBtn", () => {
+      try {
+        $("contactDetailsDialog").close();
+      } catch (_) {}
+      startCall(false);
+    });
+    bind("detailsVideoBtn", () => {
+      try {
+        $("contactDetailsDialog").close();
+      } catch (_) {}
+      startCall(true);
+    });
+    bind("acceptCallBtn", () => acceptCall());
+    bind("declineCallBtn", async () => {
+      if (incoming) {
+        try {
+          await sendSignal(incoming.conversation_id, incoming.sender_id, "decline", {});
+        } catch (_) {}
+        incoming = null;
+      }
+      try {
+        $("callDialog").close();
+      } catch (_) {}
+    });
+    bind("endCallBtn", () => endCall(true));
+    bind("muteCallBtn", () => {
+      if (!localStream) return;
+      const t = localStream.getAudioTracks()[0];
+      if (!t) return;
+      t.enabled = !t.enabled;
+      if ($("muteCallBtn")) $("muteCallBtn").textContent = t.enabled ? "Mute mic" : "Unmute mic";
+    });
+    bind("cameraCallBtn", () => {
+      if (!localStream) return;
+      const t = localStream.getVideoTracks()[0];
+      if (!t) return;
+      t.enabled = !t.enabled;
+      if ($("cameraCallBtn")) $("cameraCallBtn").textContent = t.enabled ? "Turn camera off" : "Turn camera on";
+    });
+
+    function ensureDeleteSheet() {
+      if ($("deleteSheet")) return $("deleteSheet");
+      const d = document.createElement("dialog");
+      d.id = "deleteSheet";
+      d.innerHTML =
+        '<div class="delete-sheet-inner">' +
+        '<div class="delete-sheet-handle"></div>' +
+        '<h3 class="delete-sheet-title">Delete chat?</h3>' +
+        '<p class="delete-sheet-sub" id="deleteSheetSub">This removes the chat from your list only. The other person will still see the conversation.</p>' +
+        '<div class="delete-sheet-actions">' +
+        '<button type="button" class="delete-sheet-danger" id="deleteSheetConfirm">Delete for me</button>' +
+        '<button type="button" class="delete-sheet-cancel" id="deleteSheetCancel">Cancel</button>' +
+        "</div></div>";
+      document.body.appendChild(d);
+      return d;
+    }
+
+    let pendingDeleteId = null;
+    const sheet = ensureDeleteSheet();
+    $("deleteSheetCancel").onclick = () => {
+      pendingDeleteId = null;
+      sheet.close();
+    };
+    $("deleteSheetConfirm").onclick = async () => {
+      const id = pendingDeleteId;
+      pendingDeleteId = null;
+      sheet.close();
+      if (!id) return;
+      let res = await client.rpc("hide_conversation", { p_conversation_id: id });
+      if (res.error) res = await client.rpc("delete_conversation", { p_conversation_id: id });
+      if (res.error) {
+        toast("Could not delete. Run supabase_chat.sql in Supabase.", true);
+        console.error(res.error);
+        return;
+      }
+      const item = document.querySelector('.chat-item[data-id="' + id + '"]');
+      if (item) item.remove();
+      toast("Chat deleted for you");
+    };
+
     document.addEventListener(
       "click",
-      async (e) => {
+      (e) => {
         const del = e.target.closest && e.target.closest(".delete-chat-btn");
         if (!del) return;
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-
         const item = del.closest(".chat-item");
         const id = item && item.getAttribute("data-id");
         if (!id) return;
-
-        if (!confirm("Remove this chat from your list? The other person will still see it.")) return;
-
-        let err = null;
-        let res = await client.rpc("hide_conversation", { p_conversation_id: id });
-        if (res.error) {
-          res = await client.rpc("delete_conversation", { p_conversation_id: id });
-          err = res.error;
+        const name =
+          (item.querySelector(".chat-name") && item.querySelector(".chat-name").textContent) || "this contact";
+        pendingDeleteId = id;
+        const sub = $("deleteSheetSub");
+        if (sub)
+          sub.textContent =
+            "This removes the chat with " + name + " from your list only. They will still see the conversation.";
+        try {
+          sheet.showModal();
+        } catch (_) {
+          if (confirm("Delete chat with " + name + " for you only?")) $("deleteSheetConfirm").click();
         }
-        if (err) {
-          console.error(err);
-          toast("Could not remove chat. Run supabase_chat.sql in Supabase.", true);
-          return;
-        }
-        if (item) item.remove();
-        toast("Chat removed from your list.");
       },
       true
     );
 
-    // ---- New chat search ----
-    let searchTimer = null;
-    async function robustSearchUsers() {
-      const input = $("userSearch");
-      const box = $("userResults");
-      if (!input || !box) return;
-      clearTimeout(searchTimer);
-      const q = (input.value || "").trim().toLowerCase();
-      if (q.length < 1) {
-        box.innerHTML = "";
-        return;
-      }
-      searchTimer = setTimeout(async () => {
-        const user = await sessionUser();
-        if (!user) {
-          box.innerHTML = '<div class="empty"><span>Log in to search.</span></div>';
-          return;
-        }
-        let results = [];
-        const rpc = await client.rpc("search_users", { query: q });
-        if (!rpc.error && rpc.data) results = rpc.data;
-        if (!results.length) {
-          const res = await client
-            .from("profiles")
-            .select("id, username, display_name, avatar_url")
-            .or("username.ilike.%" + q + "%,display_name.ilike.%" + q + "%")
-            .limit(20);
-          if (res.error) {
-            box.innerHTML =
-              '<div class="empty"><span>Search failed. Run supabase_chat.sql.</span></div>';
-            return;
-          }
-          results = res.data || [];
-        }
-        results = results.filter((u) => u.id !== user.id);
-        if (!results.length) {
-          box.innerHTML = '<div class="empty"><span>No users found.</span></div>';
-          return;
-        }
-        box.innerHTML = results
-          .map((u) => {
-            const name = u.display_name || u.username || "User";
-            return (
-              '<button type="button" class="user-result" data-id="' +
-              u.id +
-              '"><div><strong>' +
-              escapeHtml(name) +
-              '</strong><div class="muted">@' +
-              escapeHtml(u.username || "") +
-              "</div></div></button>"
-            );
-          })
-          .join("");
-        box.querySelectorAll(".user-result").forEach((el) => {
-          el.onclick = (ev) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            robustStartChat(el.getAttribute("data-id"));
-          };
-        });
-      }, 200);
-    }
-
-    async function robustStartChat(otherId) {
-      if (!otherId) return;
-      const user = await sessionUser();
-      if (!user) {
-        toast("Log in first.", true);
-        return;
-      }
-      try {
-        if ($("newChatDialog")) $("newChatDialog").close();
-      } catch (_) {}
-
-      const { data, error } = await client.rpc("get_or_create_conversation", {
-        other_user_id: otherId
-      });
-      if (error) {
-        console.error(error);
-        toast(
-          (error.message || "").toLowerCase().indexOf("function") >= 0 || error.code === "PGRST202"
-            ? "Could not start chat. Run supabase_chat.sql in Supabase SQL Editor."
-            : "Could not start chat: " + (error.message || "error"),
-          true
-        );
-        return;
-      }
-      const conversationId = data;
-      toast("Chat started");
-      setTimeout(() => {
-        const item = document.querySelector('.chat-item[data-id="' + conversationId + '"]');
-        if (item) item.click();
-        else location.reload();
-      }, 500);
-    }
-
-    // Capture clicks on user results from main app renderer too
     document.addEventListener(
       "click",
-      (e) => {
+      async (e) => {
         const el = e.target.closest && e.target.closest(".user-result");
         if (!el) return;
-        const id = el.getAttribute("data-id");
-        if (!id) return;
+        const otherId = el.getAttribute("data-id");
+        if (!otherId) return;
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        robustStartChat(id);
+        try {
+          if ($("newChatDialog")) $("newChatDialog").close();
+        } catch (_) {}
+        const { data, error } = await client.rpc("get_or_create_conversation", { other_user_id: otherId });
+        if (error) {
+          toast(
+            (error.message || "").toLowerCase().indexOf("function") >= 0
+              ? "Run supabase_chat.sql in Supabase to enable new chats."
+              : "Could not start chat: " + (error.message || "error"),
+            true
+          );
+          return;
+        }
+        toast("Chat started");
+        setTimeout(() => {
+          const item = document.querySelector('.chat-item[data-id="' + data + '"]');
+          if (item) item.click();
+          else location.reload();
+        }, 500);
       },
       true
     );
 
-    if ($("userSearch")) {
-      $("userSearch").addEventListener("input", robustSearchUsers);
-    }
-
-    // ---- Profile save ----
-    const saveBtn = $("saveProfileBtn");
-    if (saveBtn) {
-      saveBtn.addEventListener(
-        "click",
-        (e) => {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          saveBtn.disabled = true;
-          Promise.resolve(
-            (async () => {
-              const msg = $("profileMessage");
-              if (msg) {
-                msg.textContent = "";
-                msg.style.color = "";
-              }
-              const user = await sessionUser();
-              if (!user) return;
-              const displayName = (($("profileDisplayName") && $("profileDisplayName").value) || "").trim();
-              const username = (($("profileUsername") && $("profileUsername").value) || "").trim().toLowerCase();
-              if (!displayName || !/^[a-z0-9_]{3,24}$/.test(username)) {
-                if (msg) {
-                  msg.textContent = "Check name and username.";
-                  msg.style.color = "var(--danger)";
-                }
-                return;
-              }
-              const { data: current } = await client.from("profiles").select("*").eq("id", user.id).maybeSingle();
-              let avatarUrl = current && current.avatar_url;
-              const file = $("profileAvatarInput") && $("profileAvatarInput").files && $("profileAvatarInput").files[0];
-              if (file && file.size <= 5 * 1024 * 1024) {
-                const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
-                const path = user.id + "/" + Date.now() + "." + ext;
-                const up = await client.storage.from("avatars").upload(path, file, { upsert: true });
-                if (!up.error) {
-                  avatarUrl = client.storage.from("avatars").getPublicUrl(path).data.publicUrl;
-                }
-              }
-              if (current && username !== current.username) {
-                await client.rpc("change_username", { new_username: username });
-              }
-              const { error } = await client
-                .from("profiles")
-                .update({ display_name: displayName, avatar_url: avatarUrl })
-                .eq("id", user.id);
-              if (error) {
-                if (msg) {
-                  msg.textContent = error.message;
-                  msg.style.color = "var(--danger)";
-                }
-                return;
-              }
-              if (msg) {
-                msg.textContent = "Profile saved.";
-                msg.style.color = "var(--primary)";
-              }
-              toast("Profile saved");
-              if ($("myDisplay")) $("myDisplay").textContent = displayName;
-              if ($("myName")) $("myName").textContent = "@" + username;
-              try {
-                if ($("profileDialog")) $("profileDialog").close();
-              } catch (_) {}
-            })()
-          ).finally(() => {
-            saveBtn.disabled = false;
-          });
-        },
-        true
-      );
-    }
-
-    console.info("SimpleChat fixes active");
+    console.info("SimpleChat video + delete fixes active");
     return true;
   }
 
