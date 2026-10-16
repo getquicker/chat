@@ -17,8 +17,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=40">
-  <link rel="stylesheet" href="extra.css?v=40">
+  <link rel="stylesheet" href="style.css?v=50">
+  <link rel="stylesheet" href="extra.css?v=50">
 </head>
 <body data-page="app">
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -161,7 +161,7 @@
             </button>
           </div>
           <form id="messageForm" class="composer">
-            <textarea id="messageInput" rows="1" maxlength="2000" placeholder="Type a message…" aria-label="Message"></textarea>
+            <textarea id="messageInput" rows="1" maxlength="2000" placeholder="Type a message…" aria-label="Message" enterkeyhint="send"></textarea>
             <button class="send" type="submit" aria-label="Send message">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8a.5.5 0 0 0 0-.9L3.4 3.6a.5.5 0 0 0-.7.6L5 11l9 1-9 1-2.3 6.8a.5.5 0 0 0 .7.6z"/></svg>
             </button>
@@ -188,12 +188,12 @@
         <video id="localVideo" autoplay playsinline muted></video>
       </div>
       <div class="call-controls">
-        <button id="acceptCallBtn" class="primary hidden" type="button">Accept call</button>
+        <button id="acceptCallBtn" class="primary hidden" type="button">Accept</button>
         <button id="declineCallBtn" class="call-control" type="button">Decline</button>
-        <button id="muteCallBtn" class="call-control hidden" type="button">Mute mic</button>
-        <button id="cameraFlipBtn" class="call-control hidden" type="button" aria-label="Switch camera" title="Switch camera">Switch camera</button>
-        <button id="cameraCallBtn" class="call-control hidden" type="button">Turn camera off</button>
-        <button id="endCallBtn" class="call-end hidden" type="button">End call</button>
+        <button id="muteCallBtn" class="call-control hidden" type="button">Mute</button>
+        <button id="cameraFlipBtn" class="call-control hidden" type="button" aria-label="Switch camera" title="Switch camera">Flip</button>
+        <button id="cameraCallBtn" class="call-control hidden" type="button">Camera</button>
+        <button id="endCallBtn" class="call-end hidden" type="button">End</button>
       </div>
     </section>
   </dialog>
@@ -259,6 +259,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=30"></script>
-  <script src="app.js?v=40"></script>
+  <script src="app.js?v=50"></script>
 </body>
 </html>
