@@ -102,4 +102,29 @@
   dialog.addEventListener("toggle", updateVisibility);
   window.setInterval(updateVisibility, 700);
   updateVisibility();
+
+  // GitHub Pages cannot enforce server-side page protection; Supabase RLS remains
+  // the actual data security boundary. This separates the login screen by route.
+  const loginPage = location.pathname.endsWith("/login.html");
+  let unauthenticatedTicks = 0;
+  window.setInterval(() => {
+    const authView = byId("authView");
+    const appView = byId("appView");
+    if (!authView || !appView) return;
+    const signedInUi = !appView.classList.contains("hidden");
+    const loginUi = !authView.classList.contains("hidden");
+
+    if (loginPage && signedInUi) {
+      location.replace(new URL("index.html", location.href).href);
+      return;
+    }
+    if (!loginPage && loginUi && !signedInUi) {
+      unauthenticatedTicks += 1;
+      if (unauthenticatedTicks >= 12) {
+        location.replace(new URL("login.html", location.href).href);
+      }
+    } else {
+      unauthenticatedTicks = 0;
+    }
+  }, 300);
 })();
