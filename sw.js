@@ -1,8 +1,11 @@
-const CACHE_NAME = "simplechat-shell-v1";
+const CACHE_NAME = "simplechat-shell-v2";
 const APP_SHELL = [
   "/chat/",
   "/chat/index.html",
+  "/chat/login.html",
   "/chat/style.css",
+  "/chat/extra.css",
+  "/chat/fixes.js",
   "/chat/app.js",
   "/chat/manifest.json",
   "/chat/icons/icon-192.svg",
