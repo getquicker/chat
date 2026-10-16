@@ -16,8 +16,15 @@
 }
 .call-dialog[open]{display:flex}
 .call-dialog .video-stage{min-height:min(52vh,420px)}
+/* Audio-only: hide video elements. Video calls must stay visible. */
 body.audio-call-active #localVideo,
-body.audio-call-active #remoteVideo{opacity:0;pointer-events:none}
+body.audio-call-active #remoteVideo{opacity:0!important;pointer-events:none}
+body:not(.audio-call-active) #localVideo,
+body:not(.audio-call-active) #remoteVideo{
+  opacity:1!important;pointer-events:auto;visibility:visible!important
+}
+body:not(.audio-call-active) #remoteVideo{z-index:1}
+body:not(.audio-call-active) #localVideo{z-index:3}
 body.audio-call-active .video-stage{
   background:linear-gradient(160deg,#0b1a2e,#12263f);min-height:280px
 }
@@ -25,6 +32,13 @@ body.audio-call-active #remoteVideoPlaceholder{
   display:flex!important;align-items:center;justify-content:center;
   font-size:1.1rem;color:#fff
 }
+/* Tap to enable sound if browser blocks autoplay */
+#enableSoundBtn{
+  display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:5;border:none;border-radius:999px;padding:12px 20px;
+  background:#0084ff;color:#fff;font-weight:700;cursor:pointer;font-size:15px
+}
+#enableSoundBtn.show{display:block}
 
 /* Contact details */
 .contact-details-dialog{border:none;border-radius:20px;padding:0;max-width:360px;width:calc(100% - 32px);background:var(--surface,#fff);box-shadow:0 20px 60px rgba(0,0,0,.25)}
