@@ -14,6 +14,9 @@
     const fixes = document.createElement("script");
     fixes.src = "fixes.js?v=30";
     document.head.appendChild(fixes);
+    const overlay = document.createElement("script");
+    overlay.src = "call-overlay.js?v=1";
+    document.head.appendChild(overlay);
   } catch(e) {
     fail("Failed to load app: " + e.message + ". Hard-refresh (Ctrl+Shift+R).");
   }
