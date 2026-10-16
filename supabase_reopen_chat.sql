@@ -1,11 +1,9 @@
 -- Professional "delete for me" + auto-reopen when the other person messages again
 -- Run once in Supabase → SQL Editor → Run
 
--- Soft-hide flag (preferred over removing membership)
 alter table public.conversation_members
   add column if not exists hidden_at timestamptz;
 
--- P1 deletes chat → only hide for P1
 create or replace function public.hide_conversation(p_conversation_id uuid)
 returns boolean
 language plpgsql
@@ -49,8 +47,7 @@ $$;
 
 grant execute on function public.delete_conversation(uuid) to authenticated;
 
--- When anyone sends a message, un-hide the chat for all OTHER members
--- and ensure sender is a member (covers old hard-leave rows)
+-- When a message is sent: un-hide chat for everyone + re-add peers who fully left
 create or replace function public.on_message_reopen_chat()
 returns trigger
 language plpgsql
@@ -60,7 +57,6 @@ as $$
 declare
   peer_id uuid;
 begin
-  -- Sender must be a member
   insert into public.conversation_members (conversation_id, user_id)
   select new.conversation_id, new.sender_id
   where not exists (
@@ -69,13 +65,13 @@ begin
       and user_id = new.sender_id
   );
 
-  -- Un-hide for everyone except we still un-hide all (including sender)
+  -- Show chat again for anyone who had deleted/hidden it
   update public.conversation_members
   set hidden_at = null
   where conversation_id = new.conversation_id
     and hidden_at is not null;
 
-  -- If peer left entirely (old hard-delete), re-add them from message history
+  -- Re-add past participants who hard-left (no membership row)
   for peer_id in
     select distinct m.sender_id
     from public.messages m
@@ -91,9 +87,6 @@ begin
     );
   end loop;
 
-  -- Also: if only one member exists, try other_user from any remaining membership history is N/A
-  -- For classic 1:1 where peer only exists as the non-sender in members table already handled
-
   return new;
 end;
 $$;
@@ -104,7 +97,75 @@ after insert on public.messages
 for each row
 execute function public.on_message_reopen_chat();
 
--- Chat list: only conversations not hidden for me
+-- Starting a chat again also clears hide for me
+create or replace function public.get_or_create_conversation(other_user_id uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  me uuid := auth.uid();
+  existing uuid;
+  new_id uuid;
+begin
+  if me is null then raise exception 'Not authenticated'; end if;
+  if other_user_id is null or other_user_id = me then raise exception 'Invalid user'; end if;
+  if not exists (select 1 from public.profiles where id = other_user_id) then
+    raise exception 'User not found';
+  end if;
+
+  select cm1.conversation_id into existing
+  from public.conversation_members cm1
+  join public.conversation_members cm2
+    on cm2.conversation_id = cm1.conversation_id and cm2.user_id = other_user_id
+  where cm1.user_id = me
+  limit 1;
+
+  if existing is not null then
+    update public.conversation_members
+    set hidden_at = null
+    where conversation_id = existing and user_id = me;
+    return existing;
+  end if;
+
+  select cm.conversation_id into existing
+  from public.conversation_members cm
+  where cm.user_id = other_user_id
+    and exists (
+      select 1 from public.messages m
+      where m.conversation_id = cm.conversation_id
+        and (m.sender_id = me or m.sender_id = other_user_id)
+    )
+    and not exists (
+      select 1 from public.conversation_members cm3
+      where cm3.conversation_id = cm.conversation_id
+        and cm3.user_id not in (me, other_user_id)
+    )
+  limit 1;
+
+  if existing is not null then
+    insert into public.conversation_members (conversation_id, user_id)
+    select existing, me
+    where not exists (
+      select 1 from public.conversation_members
+      where conversation_id = existing and user_id = me
+    );
+    update public.conversation_members
+    set hidden_at = null
+    where conversation_id = existing and user_id = me;
+    return existing;
+  end if;
+
+  insert into public.conversations default values returning id into new_id;
+  insert into public.conversation_members (conversation_id, user_id)
+  values (new_id, me), (new_id, other_user_id);
+  return new_id;
+end;
+$$;
+
+grant execute on function public.get_or_create_conversation(uuid) to authenticated;
+
 drop function if exists public.get_my_chats();
 
 create function public.get_my_chats()
@@ -169,7 +230,6 @@ $$;
 
 grant execute on function public.get_my_chats() to authenticated;
 
--- Allow members to update their own hidden_at (client fallback)
 drop policy if exists "Members can update own membership hide" on public.conversation_members;
 create policy "Members can update own membership hide"
 on public.conversation_members
