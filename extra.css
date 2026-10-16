@@ -10,3 +10,8 @@ body.audio-call-active #remoteVideoPlaceholder{display:flex!important;align-item
 .details-body h2{margin:0;font-size:1.35rem;font-weight:650}
 .details-actions{display:flex;gap:16px}
 .details-action{border:none;background:var(--bg,#f0f2f5);color:var(--primary,#0084ff);border-radius:16px;padding:14px 22px;cursor:pointer;font-weight:600}
+
+/* Dedicated login route: keep the app workspace out of the login view. */
+body[data-page="login"] #appView{display:none!important}
+#callCloseBtn{display:none!important}
+#cameraFlipBtn{min-width:112px}
