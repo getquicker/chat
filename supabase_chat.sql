@@ -136,8 +136,10 @@ $$;
 
 grant execute on function public.delete_conversation(uuid) to authenticated;
 
--- Peer name from remaining member OR last non-me message sender (never Unknown)
-create or replace function public.get_my_chats()
+-- MUST drop first: return type cannot be changed with CREATE OR REPLACE
+drop function if exists public.get_my_chats();
+
+create function public.get_my_chats()
 returns table (
   conversation_id uuid,
   other_user_id uuid,
