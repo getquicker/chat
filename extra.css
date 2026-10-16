@@ -15,3 +15,25 @@ body.audio-call-active #remoteVideoPlaceholder{display:flex!important;align-item
 body[data-page="login"] #appView{display:none!important}
 #callCloseBtn{display:none!important}
 #cameraFlipBtn{min-width:112px}
+
+
+/* Polished in-call camera UX: predictable preview sizes and clear control states. */
+#localVideo{transition:width .18s ease,opacity .18s ease,transform .18s ease;transform-origin:center;box-shadow:0 4px 18px rgba(0,0,0,.28);cursor:default}
+#localVideo.is-mirrored{transform:scaleX(-1)}
+#localVideo[data-preview-size="small"]{width:clamp(76px,17vw,104px);max-width:30%;max-height:34%}
+#localVideo[data-preview-size="medium"]{width:clamp(100px,25vw,142px);max-width:36%;max-height:42%}
+#localVideo[data-preview-size="large"]{width:clamp(132px,34vw,190px);max-width:44%;max-height:48%}
+.camera-extra-control{font-size:13px;padding-inline:13px;white-space:nowrap;transition:background .15s,border-color .15s,transform .15s}
+.camera-extra-control:hover:not(:disabled){border-color:var(--primary);background:var(--primary-soft)}
+.camera-extra-control[aria-pressed="true"]{border-color:var(--primary-muted);color:var(--primary)}
+#cameraFlipBtn:disabled{opacity:.65;cursor:wait}
+@media(max-width:480px){
+  .call-shell{gap:0}
+  .call-dialog-head{margin-bottom:8px}
+  .call-controls{gap:7px;padding-top:12px}
+  .call-control,.call-end{min-height:42px;padding:0 12px;font-size:13px}
+  .camera-extra-control{flex:1 1 calc(50% - 8px);max-width:calc(50% - 4px)}
+  #cameraFlipBtn{flex:1 1 100%}
+  #localVideo[data-preview-size="large"]{width:clamp(120px,38vw,172px);max-width:46%}
+}
+@media(prefers-reduced-motion:reduce){#localVideo,.camera-extra-control{transition:none}}
