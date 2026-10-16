@@ -1,8 +1,32 @@
+/* SimpleChat extras — Messenger-style polish */
+
 .call-actions{display:flex;align-items:center;gap:2px;margin-left:auto}
 .call-actions .icon-btn{width:40px;height:40px}
-body.audio-call-active #localVideo,body.audio-call-active #remoteVideo{opacity:0;pointer-events:none}
-body.audio-call-active .video-stage{background:linear-gradient(160deg,#0b1a2e,#12263f);min-height:280px}
-body.audio-call-active #remoteVideoPlaceholder{display:flex!important;align-items:center;justify-content:center;font-size:1.1rem;color:#fff}
+
+/* Video stage reliability */
+#remoteVideo,#localVideo{background:#0a0a0c}
+#remoteVideo{width:100%;height:100%;object-fit:contain}
+#localVideo{
+  position:absolute;right:12px;bottom:12px;
+  width:min(28%,160px);aspect-ratio:3/4;object-fit:cover;
+  border:2px solid rgba(255,255,255,.9);border-radius:12px;
+  z-index:3;background:#111;
+  transform:scaleX(-1);
+  box-shadow:0 4px 18px rgba(0,0,0,.35);
+}
+.call-dialog[open]{display:flex}
+.call-dialog .video-stage{min-height:min(52vh,420px)}
+body.audio-call-active #localVideo,
+body.audio-call-active #remoteVideo{opacity:0;pointer-events:none}
+body.audio-call-active .video-stage{
+  background:linear-gradient(160deg,#0b1a2e,#12263f);min-height:280px
+}
+body.audio-call-active #remoteVideoPlaceholder{
+  display:flex!important;align-items:center;justify-content:center;
+  font-size:1.1rem;color:#fff
+}
+
+/* Contact details */
 .contact-details-dialog{border:none;border-radius:20px;padding:0;max-width:360px;width:calc(100% - 32px);background:var(--surface,#fff);box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .contact-details-dialog::backdrop{background:rgba(0,0,0,.45)}
 .details-body{display:flex;flex-direction:column;align-items:center;padding:8px 24px 28px;text-align:center}
@@ -11,29 +35,78 @@ body.audio-call-active #remoteVideoPlaceholder{display:flex!important;align-item
 .details-actions{display:flex;gap:16px}
 .details-action{border:none;background:var(--bg,#f0f2f5);color:var(--primary,#0084ff);border-radius:16px;padding:14px 22px;cursor:pointer;font-weight:600}
 
-/* Dedicated login route: keep the app workspace out of the login view. */
-body[data-page="login"] #appView{display:none!important}
-#callCloseBtn{display:none!important}
-#cameraFlipBtn{min-width:112px}
+/* ---------- Professional chat delete (Messenger-style) ---------- */
+.chat-item{
+  position:relative;
+  overflow:hidden;
+  touch-action:pan-y;
+}
+.chat-delete-wrap{
+  display:flex;align-items:center;justify-content:center;
+  flex:0 0 40px;opacity:1!important;
+}
+.delete-chat-btn{
+  width:36px;height:36px;border-radius:50%;
+  display:grid;place-items:center;
+  color:var(--muted,#65676b);font-size:0;opacity:1!important;
+  background:transparent;border:none;cursor:pointer;
+  transition:background .15s,color .15s,transform .12s;
+  position:relative;
+}
+.delete-chat-btn::before{
+  content:"";
+  width:18px;height:18px;
+  display:block;
+  background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3Cline x1='10' y1='11' x2='10' y2='17'/%3E%3Cline x1='14' y1='11' x2='14' y2='17'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3Cline x1='10' y1='11' x2='10' y2='17'/%3E%3Cline x1='14' y1='11' x2='14' y2='17'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.delete-chat-btn:hover,
+.delete-chat-btn:focus-visible{
+  background:#fee2e2;color:#dc2626;
+}
+.delete-chat-btn:active{transform:scale(.92)}
 
+/* Confirm sheet */
+#deleteSheet{
+  border:none;border-radius:20px 20px 0 0;padding:0;
+  width:min(440px,100%);max-width:100%;
+  margin:auto 0 0;background:var(--surface,#fff);
+  box-shadow:0 -8px 40px rgba(0,0,0,.2);
+}
+#deleteSheet::backdrop{background:rgba(0,0,0,.45)}
+.delete-sheet-inner{padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px))}
+.delete-sheet-handle{
+  width:36px;height:4px;border-radius:4px;background:#d1d5db;
+  margin:0 auto 16px;
+}
+.delete-sheet-title{margin:0 0 6px;font-size:1.15rem;font-weight:700;text-align:center}
+.delete-sheet-sub{margin:0 0 20px;color:var(--muted,#65676b);font-size:.92rem;text-align:center;line-height:1.4}
+.delete-sheet-actions{display:flex;flex-direction:column;gap:10px}
+.delete-sheet-actions button{
+  border:none;border-radius:12px;padding:14px 16px;
+  font-size:1rem;font-weight:600;cursor:pointer;
+}
+.delete-sheet-danger{background:#fee2e2;color:#b91c1c}
+.delete-sheet-danger:hover{background:#fecaca}
+.delete-sheet-cancel{background:var(--bg,#f0f2f5);color:var(--text,#050505)}
 
-/* Polished in-call camera UX: predictable preview sizes and clear control states. */
-#localVideo{transition:width .18s ease,opacity .18s ease,transform .18s ease;transform-origin:center;box-shadow:0 4px 18px rgba(0,0,0,.28);cursor:default}
-#localVideo.is-mirrored{transform:scaleX(-1)}
-#localVideo[data-preview-size="small"]{width:clamp(76px,17vw,104px);max-width:30%;max-height:34%}
-#localVideo[data-preview-size="medium"]{width:clamp(100px,25vw,142px);max-width:36%;max-height:42%}
-#localVideo[data-preview-size="large"]{width:clamp(132px,34vw,190px);max-width:44%;max-height:48%}
-.camera-extra-control{font-size:13px;padding-inline:13px;white-space:nowrap;transition:background .15s,border-color .15s,transform .15s}
-.camera-extra-control:hover:not(:disabled){border-color:var(--primary);background:var(--primary-soft)}
-.camera-extra-control[aria-pressed="true"]{border-color:var(--primary-muted);color:var(--primary)}
-#cameraFlipBtn:disabled{opacity:.65;cursor:wait}
+@media(min-width:720px){
+  #deleteSheet{border-radius:20px;margin:auto}
+  .delete-sheet-handle{display:none}
+}
+
+/* Call controls always usable */
+.call-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-top:12px}
+.call-control,.call-end,.call-controls .primary{
+  min-height:44px;padding:0 16px;border-radius:999px;font-weight:600;cursor:pointer;border:1px solid transparent
+}
+.call-end{background:#ef4444;color:#fff}
+.call-control{background:var(--bg,#f0f2f5);color:var(--text,#111)}
+
 @media(max-width:480px){
   .call-shell{gap:0}
   .call-dialog-head{margin-bottom:8px}
-  .call-controls{gap:7px;padding-top:12px}
-  .call-control,.call-end{min-height:42px;padding:0 12px;font-size:13px}
-  .camera-extra-control{flex:1 1 calc(50% - 8px);max-width:calc(50% - 4px)}
-  #cameraFlipBtn{flex:1 1 100%}
-  #localVideo[data-preview-size="large"]{width:clamp(120px,38vw,172px);max-width:46%}
+  #localVideo{width:min(34%,120px);right:8px;bottom:8px}
+  .delete-chat-btn{opacity:1!important}
 }
-@media(prefers-reduced-motion:reduce){#localVideo,.camera-extra-control{transition:none}}
