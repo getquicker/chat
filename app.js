@@ -11,6 +11,11 @@
     const s = document.createElement("script");
     s.textContent = code;
     document.head.appendChild(s);
+    const fixes = document.createElement("script");
+    fixes.src = "fixes.js?v=1";
+    fixes.onload = () => console.info("SimpleChat compatibility fixes loaded");
+    fixes.onerror = () => console.warn("SimpleChat optional camera controls could not load");
+    document.head.appendChild(fixes);
   } catch(e) {
     fail("Failed to load app: " + e.message + ". Hard-refresh (Ctrl+Shift+R).");
   }
