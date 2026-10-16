@@ -3,7 +3,6 @@
 .call-actions{display:flex;align-items:center;gap:2px;margin-left:auto}
 .call-actions .icon-btn{width:40px;height:40px}
 
-/* Video stage reliability */
 #remoteVideo,#localVideo{background:#0a0a0c}
 #remoteVideo{width:100%;height:100%;object-fit:contain}
 #localVideo{
@@ -16,7 +15,6 @@
 }
 .call-dialog[open]{display:flex}
 .call-dialog .video-stage{min-height:min(52vh,420px)}
-/* Audio-only: hide video elements. Video calls must stay visible. */
 body.audio-call-active #localVideo,
 body.audio-call-active #remoteVideo{opacity:0!important;pointer-events:none}
 body:not(.audio-call-active) #localVideo,
@@ -32,7 +30,6 @@ body.audio-call-active #remoteVideoPlaceholder{
   display:flex!important;align-items:center;justify-content:center;
   font-size:1.1rem;color:#fff
 }
-/* Tap to enable sound if browser blocks autoplay */
 #enableSoundBtn{
   display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   z-index:5;border:none;border-radius:999px;padding:12px 20px;
@@ -40,7 +37,6 @@ body.audio-call-active #remoteVideoPlaceholder{
 }
 #enableSoundBtn.show{display:block}
 
-/* Contact details */
 .contact-details-dialog{border:none;border-radius:20px;padding:0;max-width:360px;width:calc(100% - 32px);background:var(--surface,#fff);box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .contact-details-dialog::backdrop{background:rgba(0,0,0,.45)}
 .details-body{display:flex;flex-direction:column;align-items:center;padding:8px 24px 28px;text-align:center}
@@ -49,68 +45,44 @@ body.audio-call-active #remoteVideoPlaceholder{
 .details-actions{display:flex;gap:16px}
 .details-action{border:none;background:var(--bg,#f0f2f5);color:var(--primary,#0084ff);border-radius:16px;padding:14px 22px;cursor:pointer;font-weight:600}
 
-/* ---------- Professional chat delete (Messenger-style) ---------- */
-.chat-item{
-  position:relative;
-  overflow:hidden;
-  touch-action:pan-y;
-}
-.chat-delete-wrap{
-  display:flex;align-items:center;justify-content:center;
-  flex:0 0 40px;opacity:1!important;
-}
+.chat-item{position:relative;overflow:hidden;touch-action:pan-y}
+.chat-delete-wrap{display:flex;align-items:center;justify-content:center;flex:0 0 40px;opacity:1!important}
 .delete-chat-btn{
   width:36px;height:36px;border-radius:50%;
   display:grid;place-items:center;
   color:var(--muted,#65676b);font-size:0;opacity:1!important;
   background:transparent;border:none;cursor:pointer;
-  transition:background .15s,color .15s,transform .12s;
-  position:relative;
+  transition:background .15s,color .15s,transform .12s;position:relative
 }
 .delete-chat-btn::before{
-  content:"";
-  width:18px;height:18px;
-  display:block;
-  background:currentColor;
+  content:"";width:18px;height:18px;display:block;background:currentColor;
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3Cline x1='10' y1='11' x2='10' y2='17'/%3E%3Cline x1='14' y1='11' x2='14' y2='17'/%3E%3C/svg%3E") center/contain no-repeat;
-  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3Cline x1='10' y1='11' x2='10' y2='17'/%3E%3Cline x1='14' y1='11' x2='14' y2='17'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 6 5 6 21 6'/%3E%3Cpath d='M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3Cline x1='10' y1='11' x2='10' y2='17'/%3E%3Cline x1='14' y1='11' x2='14' y2='17'/%3E%3C/svg%3E") center/contain no-repeat
 }
-.delete-chat-btn:hover,
-.delete-chat-btn:focus-visible{
-  background:#fee2e2;color:#dc2626;
-}
+.delete-chat-btn:hover,.delete-chat-btn:focus-visible{background:#fee2e2;color:#dc2626}
 .delete-chat-btn:active{transform:scale(.92)}
 
-/* Confirm sheet */
 #deleteSheet{
   border:none;border-radius:20px 20px 0 0;padding:0;
   width:min(440px,100%);max-width:100%;
   margin:auto 0 0;background:var(--surface,#fff);
-  box-shadow:0 -8px 40px rgba(0,0,0,.2);
+  box-shadow:0 -8px 40px rgba(0,0,0,.2)
 }
 #deleteSheet::backdrop{background:rgba(0,0,0,.45)}
 .delete-sheet-inner{padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px))}
-.delete-sheet-handle{
-  width:36px;height:4px;border-radius:4px;background:#d1d5db;
-  margin:0 auto 16px;
-}
+.delete-sheet-handle{width:36px;height:4px;border-radius:4px;background:#d1d5db;margin:0 auto 16px}
 .delete-sheet-title{margin:0 0 6px;font-size:1.15rem;font-weight:700;text-align:center}
 .delete-sheet-sub{margin:0 0 20px;color:var(--muted,#65676b);font-size:.92rem;text-align:center;line-height:1.4}
 .delete-sheet-actions{display:flex;flex-direction:column;gap:10px}
-.delete-sheet-actions button{
-  border:none;border-radius:12px;padding:14px 16px;
-  font-size:1rem;font-weight:600;cursor:pointer;
-}
+.delete-sheet-actions button{border:none;border-radius:12px;padding:14px 16px;font-size:1rem;font-weight:600;cursor:pointer}
 .delete-sheet-danger{background:#fee2e2;color:#b91c1c}
 .delete-sheet-danger:hover{background:#fecaca}
 .delete-sheet-cancel{background:var(--bg,#f0f2f5);color:var(--text,#050505)}
-
 @media(min-width:720px){
   #deleteSheet{border-radius:20px;margin:auto}
   .delete-sheet-handle{display:none}
 }
 
-/* Call controls always usable */
 .call-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-top:12px}
 .call-control,.call-end,.call-controls .primary{
   min-height:44px;padding:0 16px;border-radius:999px;font-weight:600;cursor:pointer;border:1px solid transparent
@@ -123,4 +95,106 @@ body.audio-call-active #remoteVideoPlaceholder{
   .call-dialog-head{margin-bottom:8px}
   #localVideo{width:min(34%,120px);right:8px;bottom:8px}
   .delete-chat-btn{opacity:1!important}
+}
+
+/* ===== Composer: keep usable with keyboard ===== */
+.composer{
+  position:sticky;bottom:0;z-index:5;
+  background:var(--surface,#fff);
+  border-top:1px solid var(--line-soft,#e4e6eb);
+  padding:8px 10px;
+  padding-bottom:max(8px,env(safe-area-inset-bottom))
+}
+.composer textarea{
+  font-size:16px!important;
+  min-height:40px;max-height:120px;resize:none;
+  border-radius:20px;padding:10px 14px;
+  border:1px solid var(--line,#ced0d4);
+  background:var(--surface-2,#f0f2f5);
+  width:100%;line-height:1.35
+}
+.composer .send{
+  flex:0 0 40px;width:40px;height:40px;border-radius:50%;
+  background:var(--primary,#0084ff);color:#fff;
+  display:grid;place-items:center
+}
+.composer .send:active{transform:scale(.94)}
+#messageForm.composer{display:flex;align-items:flex-end;gap:8px}
+
+/* ===== Call UI — Messenger-style ===== */
+.call-dialog{border:none;background:#0b0c0f;color:#fff;padding:0}
+.call-dialog::backdrop{background:rgba(0,0,0,.72)}
+.call-shell{
+  display:flex;flex-direction:column;height:100%;min-height:0;
+  background:radial-gradient(120% 80% at 50% 0%,#1a2332 0%,#0b0c0f 55%)
+}
+.call-dialog-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px 8px;padding-top:max(12px,env(safe-area-inset-top))
+}
+.call-dialog-head h3{font-size:1.05rem;font-weight:650;margin:0;color:#fff}
+.call-dialog-head .muted{color:#a8b0bc!important;font-size:.9rem}
+.video-stage{
+  position:relative;flex:1 1 auto;min-height:220px;margin:0 12px;
+  border-radius:18px;overflow:hidden;background:#000;display:grid;place-items:center
+}
+#remoteVideo{
+  width:100%;height:100%;object-fit:cover;background:#000;
+  opacity:1!important;visibility:visible!important
+}
+body.audio-call-active #remoteVideo,
+body.audio-call-active #localVideo{opacity:0!important}
+body.audio-call-active .video-stage{
+  background:linear-gradient(160deg,#0f2744,#1a3a5c 40%,#0b0c0f)
+}
+#localVideo{
+  position:absolute;right:12px;bottom:12px;width:min(30%,140px);aspect-ratio:3/4;
+  object-fit:cover;border-radius:14px;border:2px solid rgba(255,255,255,.85);
+  box-shadow:0 8px 24px rgba(0,0,0,.45);transform:scaleX(-1);z-index:3;
+  background:#111;opacity:1!important;visibility:visible!important
+}
+.video-placeholder{
+  position:absolute;inset:0;display:grid;place-items:center;
+  color:#dbe4f0;font-size:1rem;padding:24px;text-align:center;
+  background:transparent;z-index:2;pointer-events:none
+}
+.call-controls{
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;
+  padding:16px 12px max(18px,env(safe-area-inset-bottom))
+}
+.call-control,.call-end,.call-controls .primary{
+  min-width:64px;min-height:56px;border-radius:999px;padding:0 18px;
+  font-weight:650;font-size:14px;border:none;cursor:pointer;
+  transition:transform .12s,background .15s,opacity .15s
+}
+.call-control{background:#2a2d36;color:#fff}
+.call-control:hover{background:#3a3f4b}
+.call-controls .primary{background:#22c55e;color:#fff}
+.call-end{background:#ef4444;color:#fff;min-width:72px}
+.call-control:active,.call-end:active,.call-controls .primary:active{transform:scale(.94)}
+#enableSoundBtn{
+  display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:6;border:none;border-radius:999px;padding:14px 22px;
+  background:#0084ff;color:#fff;font-weight:700;font-size:15px;cursor:pointer;
+  box-shadow:0 8px 28px rgba(0,132,255,.45)
+}
+#enableSoundBtn.show{display:block}
+
+@media(max-width:720px){
+  .call-dialog{
+    width:100%!important;max-width:none!important;
+    height:100dvh!important;max-height:100dvh!important;
+    margin:0!important;border-radius:0!important
+  }
+  .video-stage{margin:0;border-radius:0;min-height:0;flex:1}
+  #localVideo{width:clamp(88px,28vw,120px);right:10px;bottom:10px}
+  .call-controls{gap:10px}
+}
+
+@media(min-width:721px){
+  .call-dialog{
+    width:min(920px,94vw);height:min(640px,88vh);max-height:88vh;
+    border-radius:20px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5)
+  }
+  .video-stage{min-height:360px}
 }
