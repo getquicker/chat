@@ -471,6 +471,37 @@
       if ($("cameraCallBtn")) $("cameraCallBtn").textContent = t.enabled ? "Turn camera off" : "Turn camera on";
     });
 
+    // Switch between front/back cameras while preserving the active call.
+    bind("cameraFlipBtn", async () => {
+      if (!localStream || !pc) return;
+      const oldTrack = localStream.getVideoTracks()[0];
+      if (!oldTrack) { toast("Camera is not active.", true); return; }
+      const currentFacing = oldTrack.getSettings && oldTrack.getSettings().facingMode;
+      const facingMode = currentFacing === "environment" ? "user" : "environment";
+      try {
+        const nextStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        const nextTrack = nextStream.getVideoTracks()[0];
+        if (!nextTrack) throw new Error("No camera was found");
+        const sender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+        if (sender) await sender.replaceTrack(nextTrack);
+        localStream.removeTrack(oldTrack);
+        localStream.addTrack(nextTrack);
+        oldTrack.stop();
+        nextTrack.enabled = true;
+        if ($("localVideo")) {
+          $("localVideo").srcObject = localStream;
+          await ensurePlay($("localVideo"));
+        }
+        if ($("cameraFlipBtn")) $("cameraFlipBtn").textContent = facingMode === "environment" ? "Front camera" : "Back camera";
+      } catch (err) {
+        console.warn("camera flip failed", err);
+        toast("Could not switch camera on this device.", true);
+      }
+    });
+
     function ensureDeleteSheet() {
       if ($("deleteSheet")) return $("deleteSheet");
       const d = document.createElement("dialog");
@@ -507,7 +538,20 @@
         return;
       }
       const item = document.querySelector('.chat-item[data-id="' + id + '"]');
+      const wasActive = item && item.classList.contains("active");
       if (item) item.remove();
+      if (wasActive) {
+        const panel = $("conversationPanel");
+        const welcome = $("welcomeView");
+        const layout = document.querySelector(".layout");
+        if (panel) panel.classList.add("hidden");
+        if (welcome) welcome.classList.remove("hidden");
+        if (layout) layout.classList.remove("in-chat");
+        const messages = $("messages");
+        if (messages) messages.replaceChildren();
+        const input = $("messageInput");
+        if (input) { input.value = ""; input.blur(); }
+      }
       toast("Chat deleted for you");
     };
 
