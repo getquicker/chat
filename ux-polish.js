@@ -3,12 +3,13 @@
   const $ = (id) => document.getElementById(id);
   let composerWasFocused = false;
   let focusTimer = 0;
+  let sendPending = false;
 
   function keepComposerFocused() {
     const input = $("messageInput");
     if (!composerWasFocused || !input || !document.contains(input) || document.visibilityState !== "visible") return;
     const active = document.activeElement;
-    if (active && active !== input && active.matches("button, a, input, select, dialog [tabindex]")) return;
+    if (!sendPending && active && active !== input && active.matches("button, a, input, select, dialog [tabindex]")) return;
     try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
   }
 
@@ -28,8 +29,10 @@
   document.addEventListener("submit", (e) => {
     if (!e.target || e.target.id !== "messageForm") return;
     composerWasFocused = document.activeElement === $("messageInput") || composerWasFocused;
+    sendPending = true;
     window.setTimeout(keepComposerFocused, 120);
     window.setTimeout(keepComposerFocused, 320);
+    window.setTimeout(() => { sendPending = false; }, 650);
   }, true);
 
   document.addEventListener("keydown", (e) => {
