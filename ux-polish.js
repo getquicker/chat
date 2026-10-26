@@ -1,102 +1,73 @@
-// SimpleChat UX polish: keyboard stay-open, call UI, delete
+// SimpleChat UX polish: stable composer focus, responsive call controls, accessible delete sheet
 (() => {
   const $ = (id) => document.getElementById(id);
+  let composerWasFocused = false;
+  let focusTimer = 0;
 
-  function toast(msg, isError) {
-    const el = $("toast");
-    if (!el) return;
-    el.textContent = msg;
-    el.className = "toast show" + (isError ? " error" : "");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => { el.className = "toast"; }, 2800);
-  }
-
-  function refocusComposer() {
+  function keepComposerFocused() {
     const input = $("messageInput");
-    if (!input || !document.body.contains(input)) return;
-    const x = window.scrollX, y = window.scrollY;
-    try {
-      input.focus({ preventScroll: true });
-    } catch (_) {
-      input.focus();
-    }
-    requestAnimationFrame(() => {
-      if (document.activeElement !== input) {
-        try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
-      }
-      window.scrollTo(x, y);
-    });
-    setTimeout(() => {
-      if (document.activeElement !== input) {
-        try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
-      }
-    }, 50);
+    if (!composerWasFocused || !input || !document.contains(input) || document.visibilityState !== "visible") return;
+    const active = document.activeElement;
+    if (active && active !== input && active.matches("button, a, input, select, dialog [tabindex]")) return;
+    try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
   }
 
-  document.addEventListener(
-    "submit",
-    (e) => {
-      const form = e.target;
-      if (!form || form.id !== "messageForm") return;
-      setTimeout(refocusComposer, 0);
-      setTimeout(refocusComposer, 100);
-      setTimeout(refocusComposer, 300);
-    },
-    true
-  );
+  document.addEventListener("focusin", (e) => {
+    if (e.target && e.target.id === "messageInput") composerWasFocused = true;
+  });
+  document.addEventListener("focusout", (e) => {
+    if (!e.target || e.target.id !== "messageInput") return;
+    window.clearTimeout(focusTimer);
+    focusTimer = window.setTimeout(() => {
+      if (composerWasFocused && document.hasFocus() &&
+          !document.querySelector("dialog[open]") &&
+          document.querySelector(".layout.in-chat")) keepComposerFocused();
+    }, 90);
+  });
+
+  document.addEventListener("submit", (e) => {
+    if (!e.target || e.target.id !== "messageForm") return;
+    composerWasFocused = document.activeElement === $("messageInput") || composerWasFocused;
+    window.setTimeout(keepComposerFocused, 120);
+    window.setTimeout(keepComposerFocused, 320);
+  }, true);
 
   document.addEventListener("keydown", (e) => {
     const input = $("messageInput");
-    if (!input || e.target !== input) return;
+    if (!input || e.target !== input || e.isComposing) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       const form = $("messageForm");
-      if (form) {
-        if (form.requestSubmit) form.requestSubmit();
-        else form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
-      }
-      setTimeout(refocusComposer, 0);
-      setTimeout(refocusComposer, 120);
+      if (form && form.requestSubmit) form.requestSubmit();
+      else if (form) form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
     }
   });
 
-  const obs = new MutationObserver(() => {
-    const input = $("messageInput");
-    if (!input) return;
-    if (input.dataset.wantFocus === "1") refocusComposer();
+  document.addEventListener("input", (e) => {
+    if (!e.target || e.target.id !== "messageInput") return;
+    const input = e.target;
+    input.style.height = "auto";
+    input.style.height = Math.min(input.scrollHeight, 120) + "px";
   });
-  setTimeout(() => {
-    const m = $("messages");
-    if (m) obs.observe(m, { childList: true, subtree: true });
-  }, 1500);
 
-  const bindInput = () => {
-    const input = $("messageInput");
-    if (!input || input.dataset.uxBound) return;
-    input.dataset.uxBound = "1";
-    input.addEventListener("focus", () => { input.dataset.wantFocus = "1"; });
-    input.addEventListener("blur", () => {
-      if (input.dataset.wantFocus === "1") {
-        setTimeout(() => {
-          if (
-            document.activeElement !== input &&
-            $("conversationPanel") &&
-            !$("conversationPanel").classList.contains("hidden")
-          ) {
-            refocusComposer();
-          }
-        }, 30);
-      }
-    });
-  };
-  setInterval(bindInput, 1000);
-  bindInput();
-
-  function polishCallButtons() {
+  document.addEventListener("click", (e) => {
+    if (!e.target || e.target.id !== "callCloseBtn") return;
+    e.preventDefault();
     const end = $("endCallBtn");
-    if (end && end.textContent.trim() === "End call") end.textContent = "End";
-  }
-  setInterval(polishCallButtons, 2000);
+    if (end && !end.classList.contains("hidden")) end.click();
+    else {
+      const dialog = $("callDialog");
+      if (dialog && dialog.open) dialog.close();
+    }
+  }, true);
 
-  console.info("SimpleChat UX polish active");
+  const callDialog = $("callDialog");
+  if (callDialog) callDialog.addEventListener("close", () => {
+    const mute = $("muteCallBtn"), camera = $("cameraCallBtn"), flip = $("cameraFlipBtn");
+    if (mute) mute.textContent = "Mute mic";
+    if (camera) camera.textContent = "Turn camera off";
+    if (flip) flip.textContent = "Flip camera";
+  });
+
+  console.info("SimpleChat keyboard and call UX active");
 })();
