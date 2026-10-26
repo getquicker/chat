@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <script>
+  (function(){try{var s=JSON.parse(localStorage.getItem('simplechat_settings_v1')||'{}');var mode=s.theme||'system';var dark=mode==='dark'||(mode==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',dark?'dark':'light');document.documentElement.setAttribute('data-theme-mode',mode);if(s.density)document.documentElement.setAttribute('data-density',s.density);if(s.font)document.documentElement.setAttribute('data-font',s.font);}catch(e){}})();
+  </script>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
   <meta name="theme-color" content="#0084ff">
   <meta name="description" content="SimpleChat — private conversations and video calls.">
@@ -17,8 +20,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=51">
-  <link rel="stylesheet" href="extra.css?v=51">
+  <link rel="stylesheet" href="theme.css?v=1">
+  <link rel="stylesheet" href="style.css?v=52">
+  <link rel="stylesheet" href="premium.css?v=1">
+  <link rel="stylesheet" href="extra.css?v=52">
 </head>
 <body data-page="app">
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -163,7 +168,7 @@
           <form id="messageForm" class="composer">
             <textarea id="messageInput" rows="1" maxlength="2000" placeholder="Type a message…" aria-label="Message" enterkeyhint="send"></textarea>
             <button class="send" type="submit" aria-label="Send message">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8a.5.5 0 0 0 0-.9L3.4 3.6a.5.5 0 0 0 .7.6z"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.4-8a.5.5 0 0 0 0-.9L3.4 3.6a.5.5 0 0 0-.7.6z"/></svg>
             </button>
           </form>
         </div>
@@ -259,6 +264,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js?v=60"></script>
-  <script src="app.js?v=60"></script>
+  <script src="app.js?v=61"></script>
 </body>
 </html>
