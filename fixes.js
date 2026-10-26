@@ -424,13 +424,18 @@
               } catch (e) {
                 console.error(e);
               }
-            } else if ((sig.type === "ice-candidate" || sig.type === "ice") && pc) {
+            } else if (sig.type === "ice-candidate" || sig.type === "ice") {
+              // ICE candidates can arrive before the incoming offer is accepted and before
+              // RTCPeerConnection exists. Queue them instead of silently discarding them.
               try {
                 const candidate = new RTCIceCandidate(sig.payload);
-                if (pc.remoteDescription) await pc.addIceCandidate(candidate);
-                else queuedIce.push(candidate);
+                if (pc && pc.remoteDescription) {
+                  await pc.addIceCandidate(candidate);
+                } else {
+                  queuedIce.push(candidate);
+                }
               } catch (e) {
-                console.error(e);
+                console.error("ICE candidate could not be queued/applied", e);
               }
             } else if (sig.type === "hangup" || sig.type === "decline") {
               if (current || incoming) {
