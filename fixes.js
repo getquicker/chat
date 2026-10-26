@@ -206,17 +206,30 @@
       localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
 
       pc.ontrack = (e) => {
-        const stream = e.streams[0] || new MediaStream([e.track]);
-        remoteStream = stream;
-        stream.getTracks().forEach((t) => { t.enabled = true; });
+        // Tracks may arrive in separate events. Keep one combined stream instead of
+        // replacing audio with video (or video with audio) on the next ontrack event.
+        if (!remoteStream) remoteStream = new MediaStream();
+        if (e.track && !remoteStream.getTracks().some(t => t.id === e.track.id)) {
+          remoteStream.addTrack(e.track);
+        }
+        if (e.track) {
+          e.track.enabled = true;
+          e.track.onunmute = () => {
+            if ($("callStatus")) $("callStatus").textContent = "Connected";
+            const v = $("remoteVideo");
+            if (v && v.srcObject !== remoteStream) v.srcObject = remoteStream;
+            if (v) ensurePlay(v, true);
+          };
+        }
         if ($("remoteVideo")) {
-          $("remoteVideo").srcObject = stream;
+          $("remoteVideo").srcObject = remoteStream;
           $("remoteVideo").muted = false;
+          $("remoteVideo").volume = 1;
           ensurePlay($("remoteVideo"), true);
         }
-        if (withVideo && $("remoteVideoPlaceholder")) $("remoteVideoPlaceholder").classList.add("hidden");
-        else if ($("remoteVideoPlaceholder")) {
-          $("remoteVideoPlaceholder").textContent = "Connected";
+        if (withVideo && e.track && e.track.kind === "video" && $("remoteVideoPlaceholder")) $("remoteVideoPlaceholder").classList.add("hidden");
+        else if ($("remoteVideoPlaceholder") && !withVideo) {
+          $("remoteVideoPlaceholder").textContent = "Connected — audio only";
           $("remoteVideoPlaceholder").classList.remove("hidden");
         }
         if ($("callStatus")) $("callStatus").textContent = "Connected";
@@ -307,15 +320,28 @@
       pc = new RTCPeerConnection(ICE);
       localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
       pc.ontrack = (e) => {
-        const stream = e.streams[0] || new MediaStream([e.track]);
-        remoteStream = stream;
-        stream.getTracks().forEach((t) => { t.enabled = true; });
+        // Keep remote audio and video tracks together even when the browser delivers
+        // each track in a separate event.
+        if (!remoteStream) remoteStream = new MediaStream();
+        if (e.track && !remoteStream.getTracks().some(t => t.id === e.track.id)) {
+          remoteStream.addTrack(e.track);
+        }
+        if (e.track) {
+          e.track.enabled = true;
+          e.track.onunmute = () => {
+            if ($("callStatus")) $("callStatus").textContent = "Connected";
+            const v = $("remoteVideo");
+            if (v && v.srcObject !== remoteStream) v.srcObject = remoteStream;
+            if (v) ensurePlay(v, true);
+          };
+        }
         if ($("remoteVideo")) {
-          $("remoteVideo").srcObject = stream;
+          $("remoteVideo").srcObject = remoteStream;
           $("remoteVideo").muted = false;
+          $("remoteVideo").volume = 1;
           ensurePlay($("remoteVideo"), true);
         }
-        if (withVideo && $("remoteVideoPlaceholder")) $("remoteVideoPlaceholder").classList.add("hidden");
+        if (withVideo && e.track && e.track.kind === "video" && $("remoteVideoPlaceholder")) $("remoteVideoPlaceholder").classList.add("hidden");
         if ($("callStatus")) $("callStatus").textContent = "Connected";
       };
       pc.onconnectionstatechange = () => {
