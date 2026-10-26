@@ -266,6 +266,10 @@
         if (withVideo) $("cameraCallBtn").classList.remove("hidden");
         else $("cameraCallBtn").classList.add("hidden");
       }
+      if ($("cameraFlipBtn")) {
+        if (withVideo) $("cameraFlipBtn").classList.remove("hidden");
+        else $("cameraFlipBtn").classList.add("hidden");
+      }
       if ($("endCallBtn")) $("endCallBtn").classList.remove("hidden");
       if ($("remoteVideoPlaceholder")) {
         $("remoteVideoPlaceholder").textContent = "Calling…";
