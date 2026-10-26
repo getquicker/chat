@@ -12,13 +12,13 @@
     s.textContent = code;
     document.head.appendChild(s);
     const fixes = document.createElement("script");
-    fixes.src = "fixes.js?v=30";
+    fixes.src = "fixes.js?v=31";
     document.head.appendChild(fixes);
     const overlay = document.createElement("script");
     overlay.src = "call-overlay.js?v=2";
     document.head.appendChild(overlay);
     const ux = document.createElement("script");
-    ux.src = "ux-polish.js?v=1";
+    ux.src = "ux-polish.js?v=2";
     document.head.appendChild(ux);
     const reopen = document.createElement("script");
     reopen.src = "chat-reopen.js?v=1";
