@@ -12,7 +12,7 @@
     s.textContent = code;
     document.head.appendChild(s);
     const fixes = document.createElement("script");
-    fixes.src = "fixes.js?v=33";
+    fixes.src = "fixes.js?v=34";
     document.head.appendChild(fixes);
     const overlay = document.createElement("script");
     overlay.src = "call-overlay.js?v=3";
