@@ -11,18 +11,22 @@
     const s = document.createElement("script");
     s.textContent = code;
     document.head.appendChild(s);
-    const fixes = document.createElement("script");
-    fixes.src = "fixes.js?v=34";
-    document.head.appendChild(fixes);
-    const overlay = document.createElement("script");
-    overlay.src = "call-overlay.js?v=3";
-    document.head.appendChild(overlay);
-    const ux = document.createElement("script");
-    ux.src = "ux-polish.js?v=3";
-    document.head.appendChild(ux);
-    const reopen = document.createElement("script");
-    reopen.src = "chat-reopen.js?v=1";
-    document.head.appendChild(reopen);
+    const scripts = [
+      "fixes.js?v=34",
+      "call-overlay.js?v=3",
+      "ux-polish.js?v=3",
+      "chat-reopen.js?v=1",
+      "settings.js?v=1"
+    ];
+    for (const src of scripts) {
+      await new Promise((resolve) => {
+        const el = document.createElement("script");
+        el.src = src;
+        el.onload = resolve;
+        el.onerror = () => resolve();
+        document.head.appendChild(el);
+      });
+    }
   } catch(e) {
     fail("Failed to load app: " + e.message + ". Hard-refresh (Ctrl+Shift+R).");
   }
