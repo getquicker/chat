@@ -235,7 +235,19 @@
         if ($("callStatus")) $("callStatus").textContent = "Connected";
       };
       pc.onconnectionstatechange = () => {
-        if (pc && $("callStatus")) $("callStatus").textContent = "Call: " + pc.connectionState;
+        if (!pc || !$("callStatus")) return;
+        const labels = { connected: "Connected", connecting: "Connecting media…", failed: "Connection failed — check network/TURN", disconnected: "Connection interrupted — reconnecting…", closed: "Call ended" };
+        $("callStatus").textContent = labels[pc.connectionState] || ("Call: " + pc.connectionState);
+      };
+      pc.oniceconnectionstatechange = () => {
+        if (!pc) return;
+        console.info("[SimpleChat call] ICE state:", pc.iceConnectionState, "connection:", pc.connectionState);
+        if (pc.iceConnectionState === "failed" && $("callStatus")) {
+          $("callStatus").textContent = "Network connection failed — TURN relay may be needed";
+        }
+      };
+      pc.onicegatheringstatechange = () => {
+        if (pc) console.info("[SimpleChat call] ICE gathering:", pc.iceGatheringState);
       };
 
       pc.onicecandidate = (e) => {
@@ -420,7 +432,13 @@
                     ? { type: sig.payload.type, sdp: sig.payload.sdp }
                     : sig.payload;
                 await pc.setRemoteDescription(desc);
-                if ($("callStatus")) $("callStatus").textContent = "Connected";
+                // The caller may receive ICE candidates before the answer. Apply all
+                // candidates queued while remoteDescription was still unset.
+                for (const candidate of queuedIce.splice(0)) {
+                  try { await pc.addIceCandidate(candidate); }
+                  catch (iceError) { console.warn("Queued ICE candidate rejected after answer", iceError); }
+                }
+                if ($("callStatus")) $("callStatus").textContent = "Negotiating media…";
               } catch (e) {
                 console.error(e);
               }
