@@ -198,3 +198,38 @@ body.audio-call-active .video-stage{
   }
   .video-stage{min-height:360px}
 }
+
+/* Professional call stage and composer refinements */
+.call-dialog{border:1px solid rgba(255,255,255,.08);background:var(--surface);}
+.call-shell{gap:0;}
+.call-dialog-head{min-height:48px;}
+.call-dialog-head h3{font-size:19px;letter-spacing:-.02em;}
+.call-dialog-head #callStatus{margin-top:3px;font-size:13px;}
+.video-stage{background:radial-gradient(ellipse at center,#20242c 0%,#08090c 72%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);}
+#remoteVideo{object-fit:contain;}
+#localVideo{box-shadow:0 8px 28px rgba(0,0,0,.38);}
+.call-controls{gap:8px;padding-top:14px;}
+.call-control,.call-end{min-height:44px;transition:transform .12s ease,background .15s ease,border-color .15s ease;}
+.call-control:hover{background:var(--primary-soft);border-color:var(--primary-muted);}
+.call-control:active,.call-end:active{transform:scale(.96);}
+.call-end{min-width:76px;box-shadow:0 4px 14px rgba(228,30,63,.22);}
+.composer textarea{min-height:42px;max-height:120px;}
+.composer .send{width:42px;height:42px;flex-basis:42px;box-shadow:0 2px 8px rgba(0,132,255,.18);}
+.delete-sheet-inner{padding:24px;}
+.delete-sheet-title{font-size:20px;font-weight:750;letter-spacing:-.02em;}
+.delete-sheet-sub{margin-top:8px;color:var(--muted);font-size:14px;line-height:1.55;}
+.delete-sheet-actions{display:flex;flex-direction:column;gap:8px;margin-top:22px;}
+.delete-sheet-actions button{min-height:46px;border-radius:14px;font-weight:700;}
+.delete-sheet-danger{background:var(--danger);color:#fff;}
+.delete-sheet-cancel{background:var(--surface-2);color:var(--text);}
+#deleteSheet{width:min(400px,calc(100% - 28px));border-radius:24px;}
+@media(max-width:720px){
+  .call-dialog{inset:0;width:100%;height:100dvh;max-height:100dvh;border:0;border-radius:0;}
+  .call-shell{gap:8px;padding-left:12px;padding-right:12px;}
+  .video-stage{border-radius:18px;}
+  .call-controls{gap:7px;padding-top:8px;padding-bottom:4px;}
+  .call-control,.call-end{min-height:46px;padding:0 13px;font-size:13px;}
+  #localVideo{width:clamp(100px,30vw,145px);max-height:38%;}
+  .delete-sheet-inner{padding:22px;}
+}
+@media(hover:none){.delete-chat-btn{opacity:.75;}}
