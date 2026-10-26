@@ -18,7 +18,7 @@
     overlay.src = "call-overlay.js?v=2";
     document.head.appendChild(overlay);
     const ux = document.createElement("script");
-    ux.src = "ux-polish.js?v=2";
+    ux.src = "ux-polish.js?v=3";
     document.head.appendChild(ux);
     const reopen = document.createElement("script");
     reopen.src = "chat-reopen.js?v=1";
