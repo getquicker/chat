@@ -1,0 +1,508 @@
+/* ========== Chat layout fix (overrides broken ui-v2 row rules) ========== */
+.conversation {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg);
+}
+
+.conversation-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  padding-top: max(8px, env(safe-area-inset-top));
+  min-height: 56px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface);
+  z-index: 5;
+}
+
+.conversation-head .avatar {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.conversation-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.conversation-meta h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversation-meta .muted,
+#conversationStatus {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.call-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.call-actions .icon-btn {
+  width: 40px;
+  height: 40px;
+}
+
+.messages-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages {
+  flex: 1 1 auto;
+  height: auto !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+}
+
+/* Restore proper message rows — CRITICAL fix for empty/broken chat */
+.messages .row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  gap: 8px;
+  margin-top: 6px;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.messages .row.j-prev {
+  margin-top: 2px;
+}
+
+.messages .row.mine {
+  justify-content: flex-end !important;
+  align-self: stretch;
+}
+
+.messages .row.theirs {
+  justify-content: flex-start !important;
+  align-self: stretch;
+}
+
+.messages .row .avatar,
+.messages .row .avatar.xs,
+.messages .row .msg-avatar {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.messages .row.j-prev.theirs .avatar,
+.messages .row.j-prev.theirs .msg-avatar {
+  visibility: hidden;
+}
+
+.messages .row.mine .avatar {
+  display: none;
+}
+
+.messages .bubble {
+  max-width: min(78%, 420px) !important;
+  padding: 8px 12px 9px !important;
+  border-radius: 18px !important;
+  font-size: 15px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+.messages .row.theirs .bubble {
+  background: var(--bubble-in) !important;
+  color: var(--text) !important;
+  border-bottom-left-radius: 6px !important;
+}
+
+.messages .row.mine .bubble {
+  background: var(--bubble-out) !important;
+  color: #fff !important;
+  border-bottom-right-radius: 6px !important;
+}
+
+.messages .row.j-prev.theirs .bubble {
+  border-top-left-radius: 6px !important;
+}
+
+.messages .row.j-prev.mine .bubble {
+  border-top-right-radius: 6px !important;
+}
+
+.messages .msg-actions {
+  position: absolute;
+  bottom: -4px;
+  display: none;
+  gap: 2px;
+  z-index: 2;
+}
+
+.messages .row.mine .msg-actions {
+  right: 4px;
+}
+
+.messages .row.theirs .msg-actions {
+  left: 36px;
+}
+
+.messages .row:hover .msg-actions,
+.messages .row:focus-within .msg-actions,
+.messages .row.show-actions .msg-actions {
+  display: flex;
+}
+
+.messages .msg-reactions {
+  position: absolute;
+  bottom: -10px;
+  display: flex;
+  gap: 4px;
+  z-index: 1;
+}
+
+.messages .row.mine .msg-reactions {
+  right: 8px;
+}
+
+.messages .row.theirs .msg-reactions {
+  left: 40px;
+}
+
+.messages .reply-preview {
+  max-width: min(78%, 420px);
+  font-size: 0.8rem;
+  border-left: 3px solid var(--primary);
+  padding: 4px 8px;
+  margin-bottom: 2px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .messages .reply-preview {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.messages .row.mine .reply-preview {
+  border-left-color: rgba(255, 255, 255, 0.7);
+  margin-left: auto;
+}
+
+.composer,
+#messageForm.composer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 10px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line-soft);
+  background: var(--surface);
+}
+
+.composer textarea,
+#messageInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  max-height: 120px;
+  resize: none;
+  border-radius: 22px;
+  padding: 10px 14px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-2);
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.composer .send {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--primary);
+  color: #fff;
+}
+
+.reply-bar {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ========== Contact Info panel redesign ========== */
+.contact-details-dialog {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: var(--surface) !important;
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.contact-details-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.details-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: inherit;
+  min-height: 0;
+  padding: 0 !important;
+}
+
+.contact-details-dialog .dialog-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.contact-details-dialog .dialog-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.contact-details-dialog .dialog-head .icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.contact-details-dialog .dialog-head .icon-btn:hover {
+  background: var(--surface-3, var(--line-soft));
+}
+
+.details-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 20px 16px 28px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  -webkit-overflow-scrolling: touch;
+}
+
+.details-body > .avatar,
+.details-body > #detailsAvatar,
+.details-body .profile-avatar {
+  width: 96px !important;
+  height: 96px !important;
+  border-radius: 50%;
+  margin: 4px 0 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.details-body > h2,
+#detailsName {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.details-body > .muted,
+#detailsUsername {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  color: var(--muted);
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.details-actions {
+  display: flex !important;
+  gap: 12px;
+  justify-content: center;
+  margin: 0 0 8px;
+  width: 100%;
+}
+
+.details-action {
+  flex: 1 1 0;
+  max-width: 140px;
+  min-height: 44px;
+  padding: 10px 14px !important;
+  border-radius: 14px !important;
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+  font-weight: 650 !important;
+  border: 1px solid transparent !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.details-action:hover {
+  border-color: var(--primary-muted) !important;
+}
+
+.details-action:active {
+  transform: scale(0.97);
+}
+
+.details-action:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.details-groups {
+  width: 100%;
+  text-align: left;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.details-groups h4 {
+  margin: 14px 4px 6px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.details-groups button {
+  display: flex !important;
+  align-items: center;
+  gap: 12px;
+  width: 100% !important;
+  margin: 2px 0 !important;
+  padding: 12px 12px !important;
+  border-radius: 12px !important;
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.95rem;
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--text) !important;
+  cursor: pointer;
+}
+
+.details-groups button:hover {
+  background: var(--surface-2) !important;
+}
+
+.details-groups button.danger {
+  color: var(--danger) !important;
+}
+
+.details-groups .dg-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.details-groups button.danger .dg-icon {
+  background: var(--danger-soft);
+}
+
+@media (min-width: 900px) {
+  .contact-details-dialog {
+    width: min(380px, 100vw) !important;
+    max-width: 380px !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 0 0 auto !important;
+    border-radius: 0 !important;
+  }
+}
+
+@media (max-width: 899px) {
+  .contact-details-dialog {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .messages {
+    padding-left: max(16px, calc(50% - 400px));
+    padding-right: max(16px, calc(50% - 400px));
+  }
+}
+
+@media (max-width: 430px) {
+  .messages .bubble {
+    max-width: min(85%, 100%) !important;
+  }
+  .conversation-head {
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  .call-actions .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+}
