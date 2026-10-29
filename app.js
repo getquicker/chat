@@ -16,7 +16,8 @@
       "call-overlay.js?v=3",
       "ux-polish.js?v=3",
       "chat-reopen.js?v=1",
-      "settings.js?v=1"
+      "settings.js?v=2",
+      "ui-v2.js?v=1"
     ];
     for (const src of scripts) {
       await new Promise((resolve) => {
