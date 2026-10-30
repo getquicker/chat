@@ -17,8 +17,8 @@
       "ux-polish.js?v=3",
       "chat-reopen.js?v=1",
       "settings.js?v=2",
-      "ui-v2.js?v=3",
-      "reactions.js?v=1",
+      "ui-v2.js?v=4",
+      "reactions.js?v=2",
       "call-viewport.js?v=1"
     ];
     for (const src of scripts) {
