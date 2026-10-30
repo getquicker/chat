@@ -21,10 +21,11 @@
       "reactions.js?v=3",
       "call-viewport.js?v=1",
       "motion.js?v=1",
-      "brand-boot.js?v=15",
+      "brand-boot.js?v=16",
       "motion-messages.js?v=1",
       "msg-actions-fix.js?v=5",
       "reply-mobile.js?v=1",
+      "mobile-gestures.js?v=1",
       "chat-scroll-fix.js?v=2",
       "ui-guard.js?v=1",
       "composer-fix.js?v=2"
