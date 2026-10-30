@@ -14,7 +14,7 @@
   }
 
   function ensureCss() {
-    ["msg-actions.css?v=6", "mobile-fix.css?v=1", "layout-fix.css?v=2", "reply-mobile.css?v=1", "desktop-popups.css?v=1"].forEach((href) => {
+    ["msg-actions.css?v=6", "mobile-fix.css?v=1", "layout-fix.css?v=2", "reply-mobile.css?v=2", "desktop-popups.css?v=2"].forEach((href) => {
       if (document.querySelector('link[href*="' + href.split("?")[0] + '"]')) return;
       const l = document.createElement("link");
       l.rel = "stylesheet";
@@ -107,12 +107,12 @@
     requestAnimationFrame(() => {
       if (isMobile()) { p.style.left = ""; p.style.top = ""; return; }
       const r = btn.getBoundingClientRect();
-      const pw = p.offsetWidth || 280;
-      const ph = p.offsetHeight || 60;
+      const pw = p.offsetWidth || 300;
+      const ph = p.offsetHeight || 68;
       let left = r.left + r.width / 2 - pw / 2;
       left = Math.max(12, Math.min(left, window.innerWidth - pw - 12));
-      let top = r.top - ph - 12;
-      if (top < 12) top = r.bottom + 12;
+      let top = r.top - ph - 14;
+      if (top < 12) top = r.bottom + 14;
       if (top + ph > window.innerHeight - 12) top = Math.max(12, window.innerHeight - ph - 12);
       p.style.left = left + "px";
       p.style.top = top + "px";
@@ -167,9 +167,12 @@
       const acts = document.createElement("div");
       acts.className = "msg-actions";
       acts.innerHTML =
-        '<button type="button" class="msg-act" data-a="reply" title="Reply" aria-label="Reply">\u21A9</button>' +
-        '<button type="button" class="msg-act" data-a="react" title="React" aria-label="React">\uD83D\uDE0A</button>' +
-        '<button type="button" class="msg-act" data-a="copy" title="Copy" aria-label="Copy">\u29C9</button>';
+        '<button type="button" class="msg-act" data-a="reply" title="Reply" aria-label="Reply">' +
+        '<svg viewBox="0 0 24 24"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg></button>' +
+        '<button type="button" class="msg-act" data-a="react" title="React" aria-label="React">' +
+        '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></button>' +
+        '<button type="button" class="msg-act" data-a="copy" title="Copy" aria-label="Copy">' +
+        '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>';
       row.appendChild(acts);
     }
     wireActions(row);
