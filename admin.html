@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kurakani Admin</title>
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #0f0c16; --card: #1a1624; --line: #2e283c; --text: #f0eaf8;
+      --muted: #9b94ad; --accent: #8b5cf6; --ok: #22c55e; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 20% -10%, #2a1848 0%, var(--bg) 55%);
+      color: var(--text); padding: 24px 16px 48px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 1.35rem; margin: 0 0 6px; font-weight: 700; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+      padding: 20px; margin-bottom: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+    label {
+      display: block; font-size: 0.78rem; font-weight: 600; color: var(--muted);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    input {
+      width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line);
+      background: #120f1a; color: var(--text); font-size: 1rem; margin-bottom: 12px; outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+    button {
+      border: none; border-radius: 10px; padding: 11px 16px; font-weight: 600;
+      font-size: 0.95rem; cursor: pointer; background: var(--accent); color: #fff;
+    }
+    button.secondary { background: #2a2438; color: var(--text); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .msg { font-size: 0.9rem; margin-top: 10px; color: var(--muted); }
+    .msg.err { color: #fca5a5; }
+    .msg.ok { color: #86efac; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 600; color: #1d9bf0; }
+    .hidden { display: none !important; }
+    a.back { color: var(--muted); text-decoration: none; font-size: 0.85rem; }
+    a.back:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="./index.html">← Back to Kurakani</a>
+    <h1 style="margin-top:14px">Admin</h1>
+    <p class="sub">Verify users. Run <code>supabase_admin.sql</code> once in Supabase SQL Editor first.</p>
+
+    <div class="card" id="loginCard">
+      <label>Username</label>
+      <input id="adminUser" autocomplete="username" value="admin" />
+      <label>Password</label>
+      <input id="adminPass" type="password" autocomplete="current-password" />
+      <div class="row"><button type="button" id="loginBtn">Sign in</button></div>
+      <p class="msg" id="loginMsg"></p>
+    </div>
+
+    <div class="card hidden" id="panelCard">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <strong>Users</strong>
+        <div class="row">
+          <button type="button" class="secondary" id="refreshBtn">Refresh</button>
+          <button type="button" class="secondary" id="logoutBtn">Log out</button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <input id="searchUser" placeholder="Search username…" style="margin:0;flex:1" />
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Username</th><th>Name</th><th>Verified</th><th></th></tr></thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+      <p class="msg" id="panelMsg"></p>
+    </div>
+  </div>
+  <script>
+    const ADMIN_USER = "admin";
+    const ADMIN_PASS = "admin18110";
+    let adminPass = sessionStorage.getItem("sc_admin_ok") || "";
+    const sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+    const $ = (id) => document.getElementById(id);
+    function msg(el, text, ok) {
+      el.textContent = text || "";
+      el.className = "msg " + (ok === true ? "ok" : ok === false ? "err" : "");
+    }
+    function showPanel(on) {
+      $("loginCard").classList.toggle("hidden", on);
+      $("panelCard").classList.toggle("hidden", !on);
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+    async function listUsers() {
+      const q = ($("searchUser").value || "").trim().toLowerCase();
+      msg($("panelMsg"), "Loading…");
+      const { data, error } = await sb.rpc("admin_list_profiles", { p_admin_pass: adminPass });
+      if (error) {
+        msg($("panelMsg"), error.message + " — run supabase_admin.sql in Supabase SQL Editor.", false);
+        return;
+      }
+      const rows = (data || []).filter((u) => !q || String(u.username || "").toLowerCase().includes(q));
+      const tb = $("userRows");
+      tb.innerHTML = "";
+      rows.forEach((u) => {
+        const tr = document.createElement("tr");
+        const verified = !!u.is_verified;
+        tr.innerHTML =
+          "<td>@" + escapeHtml(u.username || "") + "</td>" +
+          "<td>" + escapeHtml(u.display_name || "") + "</td>" +
+          "<td>" + (verified ? '<span class="badge">✓ Verified</span>' : "—") + "</td><td></td>";
+        const td = tr.lastElementChild;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = verified ? "secondary" : "";
+        btn.textContent = verified ? "Remove badge" : "Verify";
+        btn.addEventListener("click", async () => {
+          btn.disabled = true;
+          const { error: err2 } = await sb.rpc("admin_set_verified", {
+            p_username: u.username,
+            p_verified: !verified,
+            p_admin_pass: adminPass
+          });
+          btn.disabled = false;
+          if (err2) { msg($("panelMsg"), err2.message, false); return; }
+          msg($("panelMsg"), verified ? "Badge removed" : "Verified", true);
+          listUsers();
+        });
+        td.appendChild(btn);
+        tb.appendChild(tr);
+      });
+      msg($("panelMsg"), rows.length + " user(s)", true);
+    }
+    $("loginBtn").addEventListener("click", () => {
+      const u = ($("adminUser").value || "").trim();
+      const p = $("adminPass").value || "";
+      if (u === ADMIN_USER && p === ADMIN_PASS) {
+        adminPass = p;
+        sessionStorage.setItem("sc_admin_ok", p);
+        showPanel(true);
+        listUsers();
+      } else msg($("loginMsg"), "Invalid credentials", false);
+    });
+    $("logoutBtn").addEventListener("click", () => {
+      adminPass = "";
+      sessionStorage.removeItem("sc_admin_ok");
+      showPanel(false);
+    });
+    $("refreshBtn").addEventListener("click", listUsers);
+    $("searchUser").addEventListener("input", () => listUsers());
+    if (adminPass === ADMIN_PASS) { showPanel(true); listUsers(); }
+  </script>
+</body>
+</html>

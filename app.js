@@ -21,13 +21,15 @@
       "reactions.js?v=3",
       "call-viewport.js?v=1",
       "motion.js?v=1",
-      "brand-boot.js?v=20",
+      "brand-boot.js?v=21",
       "motion-messages.js?v=1",
-      "msg-actions-fix.js?v=8",
+      "msg-actions-fix.js?v=9",
       "reply-mobile.js?v=3",
       "mobile-gestures.js?v=2",
       "chat-scroll-fix.js?v=2",
       "ui-guard.js?v=1",
+      "name-validation.js?v=1",
+      "verified-badge.js?v=1",
       "composer-fix.js?v=2"
     ];
     for (const src of scripts) {

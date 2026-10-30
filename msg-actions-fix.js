@@ -14,7 +14,7 @@
   }
 
   function ensureCss() {
-    ["msg-actions.css?v=6", "mobile-fix.css?v=1", "layout-fix.css?v=2", "reply-mobile.css?v=3", "desktop-popups.css?v=3"].forEach((href) => {
+    ["msg-actions.css?v=6", "mobile-fix.css?v=1", "layout-fix.css?v=2", "reply-mobile.css?v=3", "desktop-popups.css?v=4"].forEach((href) => {
       if (document.querySelector('link[href*="' + href.split("?")[0] + '"]')) return;
       const l = document.createElement("link");
       l.rel = "stylesheet";
