@@ -14,7 +14,7 @@
   }
 
   function ensureCss() {
-    ["msg-actions.css?v=6", "mobile-fix.css?v=1", "layout-fix.css?v=2", "reply-mobile.css?v=2", "desktop-popups.css?v=2"].forEach((href) => {
+    ["msg-actions.css?v=6", "mobile-fix.css?v=1", "layout-fix.css?v=2", "reply-mobile.css?v=3", "desktop-popups.css?v=3"].forEach((href) => {
       if (document.querySelector('link[href*="' + href.split("?")[0] + '"]')) return;
       const l = document.createElement("link");
       l.rel = "stylesheet";
@@ -107,12 +107,12 @@
     requestAnimationFrame(() => {
       if (isMobile()) { p.style.left = ""; p.style.top = ""; return; }
       const r = btn.getBoundingClientRect();
-      const pw = p.offsetWidth || 300;
-      const ph = p.offsetHeight || 68;
+      const pw = p.offsetWidth || 260;
+      const ph = p.offsetHeight || 48;
       let left = r.left + r.width / 2 - pw / 2;
       left = Math.max(12, Math.min(left, window.innerWidth - pw - 12));
-      let top = r.top - ph - 14;
-      if (top < 12) top = r.bottom + 14;
+      let top = r.top - ph - 12;
+      if (top < 12) top = r.bottom + 12;
       if (top + ph > window.innerHeight - 12) top = Math.max(12, window.innerHeight - ph - 12);
       p.style.left = left + "px";
       p.style.top = top + "px";

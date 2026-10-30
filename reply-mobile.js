@@ -140,7 +140,7 @@
     if (!document.querySelector('link[href*="reply-mobile.css"]')) {
       const l = document.createElement("link");
       l.rel = "stylesheet";
-      l.href = "reply-mobile.css?v=2";
+      l.href = "reply-mobile.css?v=3";
       document.head.appendChild(l);
     }
     ensureBar();
