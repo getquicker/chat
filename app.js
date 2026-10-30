@@ -19,7 +19,7 @@
       "settings.js?v=2",
       "ui-v2.js?v=4",
       "reactions.js?v=2",
-      "msg-actions-fix.js?v=1",
+      "msg-actions-fix.js?v=2",
       "call-viewport.js?v=1",
       "motion.js?v=1",
       "brand-boot.js?v=5",
