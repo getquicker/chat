@@ -21,7 +21,7 @@
       "reactions.js?v=2",
       "call-viewport.js?v=1",
       "motion.js?v=1",
-      "brand-boot.js?v=5",
+      "brand-boot.js?v=6",
       "motion-messages.js?v=1"
     ];
     for (const src of scripts) {
