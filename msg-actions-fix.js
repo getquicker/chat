@@ -12,11 +12,13 @@
   }
 
   function ensureCss() {
-    if (document.querySelector('link[href*="msg-actions.css"]')) return;
-    const l = document.createElement("link");
-    l.rel = "stylesheet";
-    l.href = "msg-actions.css?v=3";
-    document.head.appendChild(l);
+    ["msg-actions.css?v=5", "layout-fix.css?v=2"].forEach((href) => {
+      if (document.querySelector('link[href*="' + href.split("?")[0] + '"]')) return;
+      const l = document.createElement("link");
+      l.rel = "stylesheet";
+      l.href = href;
+      document.head.appendChild(l);
+    });
   }
 
   function ensureReplyBar() {
@@ -68,23 +70,18 @@
     p = document.createElement("div");
     p.id = "reactPicker";
     p.className = "react-picker";
-    p.setAttribute("role", "listbox");
-    p.setAttribute("aria-label", "React");
     p.innerHTML = EMOJIS.map((e) =>
-      '<button type="button" data-emoji="' + e + '" aria-label="React ' + e + '">' + e + "</button>"
+      '<button type="button" data-emoji="' + e + '">' + e + "</button>"
     ).join("");
     document.body.appendChild(p);
     p.addEventListener("click", (e) => {
       const b = e.target.closest("[data-emoji]");
       if (!b || !p.dataset.msgId) return;
       e.stopPropagation();
-      const id = p.dataset.msgId;
-      const emoji = b.dataset.emoji;
       if (typeof window.__scToggleReaction === "function") {
-        window.__scToggleReaction(id, emoji);
+        window.__scToggleReaction(p.dataset.msgId, b.dataset.emoji);
       } else {
-        document.dispatchEvent(new CustomEvent("sc-react", { detail: { msgId: id, emoji } }));
-        optimisticChip(id, emoji);
+        document.dispatchEvent(new CustomEvent("sc-react", { detail: { msgId: p.dataset.msgId, emoji: b.dataset.emoji } }));
       }
       p.classList.remove("open");
     });
@@ -94,34 +91,7 @@
       if (e.target.closest && e.target.closest('.msg-act[data-a="react"]')) return;
       p.classList.remove("open");
     });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") p.classList.remove("open");
-    });
     return p;
-  }
-
-  function optimisticChip(msgId, emoji) {
-    const row = document.querySelector('.row[data-msg-id="' + msgId + '"]');
-    if (!row) return;
-    let box = row.querySelector(".msg-reactions");
-    if (!box) {
-      box = document.createElement("div");
-      box.className = "msg-reactions";
-      row.appendChild(box);
-    }
-    let chipEl = box.querySelector('[data-emoji="' + emoji + '"]');
-    if (chipEl) {
-      chipEl.remove();
-      if (!box.children.length) box.remove();
-    } else {
-      chipEl = document.createElement("button");
-      chipEl.type = "button";
-      chipEl.className = "reaction-chip mine";
-      chipEl.dataset.emoji = emoji;
-      chipEl.dataset.msg = msgId;
-      chipEl.textContent = emoji;
-      box.appendChild(chipEl);
-    }
   }
 
   function openReactPicker(btn, msgId) {
@@ -132,8 +102,7 @@
       const r = btn.getBoundingClientRect();
       const pw = p.offsetWidth || 220;
       const ph = p.offsetHeight || 48;
-      let left = r.left + r.width / 2 - pw / 2;
-      left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+      let left = Math.max(8, Math.min(r.left + r.width / 2 - pw / 2, window.innerWidth - pw - 8));
       let top = r.top - ph - 10;
       if (top < 8) top = r.bottom + 10;
       p.style.left = left + "px";
@@ -155,25 +124,27 @@
       const text = ((bubble && bubble.textContent) || "").trim();
       const action = b.dataset.a;
       if (action === "copy") {
+        if (window.__scAllowCopyOnce) window.__scAllowCopyOnce();
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(text).then(() => toast("Copied")).catch(() => toast("Copy failed"));
         } else toast("Copy failed");
       } else if (action === "reply") {
         setReply(msgId, text);
-        row.classList.remove("show-actions", "actions-open");
       } else if (action === "react") {
         openReactPicker(b, msgId);
       }
     }, true);
+  }
 
-    let timer;
-    row.addEventListener("touchstart", () => {
-      timer = setTimeout(() => {
-        row.classList.add("show-actions", "actions-open");
-      }, 400);
-    }, { passive: true });
-    row.addEventListener("touchend", () => clearTimeout(timer));
-    row.addEventListener("touchmove", () => clearTimeout(timer));
+  function fixAlignment(row) {
+    if (!row) return;
+    if (row.classList.contains("mine")) {
+      row.style.justifyContent = "flex-end";
+      row.style.flexDirection = "row";
+    } else if (row.classList.contains("theirs")) {
+      row.style.justifyContent = "flex-start";
+      row.style.flexDirection = "row";
+    }
   }
 
   let enhanceTimer = null;
@@ -181,24 +152,22 @@
     if (enhanceTimer) return;
     enhanceTimer = requestAnimationFrame(() => {
       enhanceTimer = null;
-      enhanceAllNow();
-    });
-  }
-  function enhanceAllNow() {
-    document.querySelectorAll("#messages .row").forEach((row) => {
-      if (!row.dataset.msgId) {
-        row.dataset.msgId = row.getAttribute("data-id") || ("dom-" + Math.random().toString(36).slice(2, 9));
-      }
-      if (!row.querySelector(".msg-actions") && row.querySelector(".bubble")) {
-        const acts = document.createElement("div");
-        acts.className = "msg-actions";
-        acts.innerHTML =
-          '<button type="button" class="msg-act" data-a="reply" title="Reply" aria-label="Reply">\u21A9</button>' +
-          '<button type="button" class="msg-act" data-a="react" title="React" aria-label="React">\uD83D\uDE0A</button>' +
-          '<button type="button" class="msg-act" data-a="copy" title="Copy" aria-label="Copy">\u29C9</button>';
-        row.appendChild(acts);
-      }
-      wireActions(row);
+      document.querySelectorAll("#messages .row").forEach((row) => {
+        if (!row.dataset.msgId) {
+          row.dataset.msgId = row.getAttribute("data-id") || ("dom-" + Math.random().toString(36).slice(2, 9));
+        }
+        fixAlignment(row);
+        if (!row.querySelector(".msg-actions") && row.querySelector(".bubble")) {
+          const acts = document.createElement("div");
+          acts.className = "msg-actions";
+          acts.innerHTML =
+            '<button type="button" class="msg-act" data-a="reply" title="Reply">\u21A9</button>' +
+            '<button type="button" class="msg-act" data-a="react" title="React">\uD83D\uDE0A</button>' +
+            '<button type="button" class="msg-act" data-a="copy" title="Copy">\u29C9</button>';
+          row.appendChild(acts);
+        }
+        wireActions(row);
+      });
     });
   }
 
@@ -232,8 +201,8 @@
     if (box) {
       new MutationObserver(() => enhanceAll()).observe(box, { childList: true });
     }
-    setTimeout(enhanceAll, 500);
-    setTimeout(enhanceAll, 1500);
+    setTimeout(enhanceAll, 400);
+    setTimeout(enhanceAll, 1200);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

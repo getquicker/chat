@@ -21,10 +21,11 @@
       "reactions.js?v=3",
       "call-viewport.js?v=1",
       "motion.js?v=1",
-      "brand-boot.js?v=10",
+      "brand-boot.js?v=11",
       "motion-messages.js?v=1",
       "msg-actions-fix.js?v=3",
-      "chat-scroll-fix.js?v=2"
+      "chat-scroll-fix.js?v=2",
+      "ui-guard.js?v=1"
     ];
     for (const src of scripts) {
       await new Promise((resolve) => {

@@ -1,5 +1,5 @@
 (() => {
-  ["motion.css?v=1", "polish.css?v=1", "style-shift.css?v=1", "desktop-ui.css?v=1", "kurakani.css?v=4", "msg-actions.css?v=4", "layout-fix.css?v=1"].forEach((href) => {
+  ["motion.css?v=1", "polish.css?v=1", "style-shift.css?v=1", "desktop-ui.css?v=1", "kurakani.css?v=4", "msg-actions.css?v=5", "layout-fix.css?v=2"].forEach((href) => {
     if ([...document.styleSheets].some((s) => (s.href || "").includes(href.split("?")[0]))) return;
     const l = document.createElement("link");
     l.rel = "stylesheet";
@@ -14,6 +14,4 @@
   if (meta) meta.content = "#6d28d9";
   const icon = document.querySelector('link[rel="icon"]');
   if (icon) icon.href = "icons/favicon.svg?v=3";
-  const install = document.getElementById("installAppBtn");
-  if (install) { install.title = "Install Kurakani"; install.setAttribute("aria-label", "Install Kurakani"); }
 })();
