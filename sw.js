@@ -1,4 +1,4 @@
-const CACHE_NAME = "simplechat-shell-v5";
+const CACHE_NAME = "kurakani-shell-v6";
 const APP_SHELL = [
   "/chat/",
   "/chat/index.html",
@@ -29,7 +29,7 @@ const NETWORK_FIRST_PREFIXES = [
 
 function isNetworkFirst(pathname) {
   if (NETWORK_FIRST_PREFIXES.some((p) => pathname === p)) return true;
-  if (pathname.startsWith("/chat/") && (pathname.endsWith(".js") || /\/n\d\.txt$/.test(pathname))) return true;
+  if (pathname.startsWith("/chat/") && (pathname.endsWith(".js") || pathname.endsWith(".css") || /\/n\d\.txt$/.test(pathname))) return true;
   return false;
 }
 
@@ -38,7 +38,7 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE_NAME)
       .then((cache) => cache.addAll(APP_SHELL))
-      .catch((error) => console.warn("SimpleChat shell cache skipped:", error))
+      .catch((error) => console.warn("Kurakani shell cache skipped:", error))
       .then(() => self.skipWaiting())
   );
 });
@@ -79,17 +79,18 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
+    caches.match(request).then((cached) => {
+      const network = fetch(request)
+        .then((response) => {
           if (response && response.ok) {
             const copy = response.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           }
           return response;
         })
-    )
+        .catch(() => cached);
+      return cached || network;
+    })
   );
 });
 
@@ -97,15 +98,15 @@ self.addEventListener("push", (event) => {
   let payload = {};
   try {
     payload = event.data ? event.data.json() : {};
-  } catch (_) {
+  } catch (e) {
     payload = { body: event.data ? event.data.text() : "" };
   }
-  const title = payload.title || "SimpleChat";
+  const title = payload.title || "Kurakani";
   const options = {
     body: payload.body || "You have a new notification.",
     icon: "/chat/icons/icon-192.svg",
     badge: "/chat/icons/icon-192.svg",
-    tag: payload.tag || "simplechat-push",
+    tag: payload.tag || "kurakani-push",
     data: { url: payload.url || "/chat/", conversationId: payload.conversationId || null }
   };
   event.waitUntil(self.registration.showNotification(title, options));
