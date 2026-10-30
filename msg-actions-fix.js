@@ -203,6 +203,14 @@
   }
 
   function init() {
+  (function ensureCss() {
+    if (document.querySelector('link[href*="msg-actions-fix.css"]')) return;
+    const l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = "msg-actions-fix.css?v=1";
+    document.head.appendChild(l);
+  })();
+
     wireSendReply();
     ensureReactPicker();
     ensureReplyBar();
