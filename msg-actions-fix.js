@@ -1,10 +1,12 @@
 /**
- * WhatsApp-style message actions: fixed bar (never clipped),
- * react / reply / copy in one place.
+ * WhatsApp-style message actions — mobile responsive
+ * Fixed bar, long-press, safe-area aware positioning.
  */
 (() => {
   const $ = (id) => document.getElementById(id);
   const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+  const isTouch = () => window.matchMedia("(hover: none), (pointer: coarse)").matches;
+  const isNarrow = () => window.innerWidth < 640;
 
   function toast(msg) {
     const t = $("toast");
@@ -63,7 +65,9 @@
     $("replyBarText").textContent = replyTarget.text || "Message";
     bar.classList.add("active");
     const input = $("messageInput");
-    if (input) input.focus();
+    if (input) {
+      try { input.focus({ preventScroll: true }); } catch (_) { input.focus(); }
+    }
   }
 
   function wireSendReply() {
@@ -80,6 +84,17 @@
     }, true);
   }
 
+  function ensureBackdrop() {
+    let bd = $("waMsgBackdrop");
+    if (bd) return bd;
+    bd = document.createElement("div");
+    bd.id = "waMsgBackdrop";
+    bd.className = "wa-msg-backdrop";
+    bd.addEventListener("click", hideBar);
+    document.body.appendChild(bd);
+    return bd;
+  }
+
   function ensureBar() {
     let bar = $("waMsgBar");
     if (bar) return bar;
@@ -89,7 +104,7 @@
     bar.setAttribute("role", "toolbar");
     bar.setAttribute("aria-label", "Message actions");
     const emojiBtns = EMOJIS.map(
-      (e) => '<button type="button" data-emoji="' + e + '" title="' + e + '">' + e + "</button>"
+      (e) => '<button type="button" data-emoji="' + e + '" title="' + e + '" aria-label="React ' + e + '">' + e + "</button>"
     ).join("");
     bar.innerHTML =
       emojiBtns +
@@ -144,6 +159,19 @@
       .trim();
   }
 
+  function viewportBox() {
+    const vv = window.visualViewport;
+    if (vv) {
+      return {
+        width: vv.width,
+        height: vv.height,
+        offsetTop: vv.offsetTop || 0,
+        offsetLeft: vv.offsetLeft || 0
+      };
+    }
+    return { width: window.innerWidth, height: window.innerHeight, offsetTop: 0, offsetLeft: 0 };
+  }
+
   function showBar(row) {
     const bar = ensureBar();
     const bubble = row.querySelector(".bubble");
@@ -154,31 +182,56 @@
       row.dataset.msgId = row.getAttribute("data-id") || "dom-" + Math.random().toString(36).slice(2, 10);
     }
 
-    bar.classList.add("open");
-    const br = bubble.getBoundingClientRect();
-    const bw = bar.offsetWidth || 320;
-    const bh = bar.offsetHeight || 48;
-
-    let top = br.top - bh - 8;
-    if (top < 8) top = br.bottom + 8;
-    if (top + bh > window.innerHeight - 8) top = Math.max(8, window.innerHeight - bh - 8);
-
-    let left = br.left + br.width / 2 - bw / 2;
-    if (row.classList.contains("mine")) {
-      left = br.right - bw;
-    } else {
-      left = br.left;
+    const mobile = isTouch() || isNarrow();
+    if (mobile) {
+      ensureBackdrop().classList.add("open");
     }
-    if (left < 8) left = 8;
-    if (left + bw > window.innerWidth - 8) left = window.innerWidth - bw - 8;
 
-    bar.style.left = left + "px";
-    bar.style.top = top + "px";
+    bar.classList.add("open");
+
+    const br = bubble.getBoundingClientRect();
+    const vp = viewportBox();
+    const margin = mobile ? 12 : 8;
+    const safeBottom = mobile ? 24 : 8;
+
+    const bw = Math.min(bar.offsetWidth || 320, vp.width - margin * 2);
+    const bh = bar.offsetHeight || 52;
+
+    let top, left;
+
+    if (mobile) {
+      top = br.top - bh - 10;
+      if (top < vp.offsetTop + margin) {
+        top = br.bottom + 10;
+      }
+      if (top + bh > vp.offsetTop + vp.height - safeBottom) {
+        top = vp.offsetTop + Math.max(margin, (vp.height - bh) / 2);
+      }
+      left = vp.offsetLeft + (vp.width - bw) / 2;
+    } else {
+      top = br.top - bh - 8;
+      if (top < 8) top = br.bottom + 8;
+      if (top + bh > window.innerHeight - 8) top = Math.max(8, window.innerHeight - bh - 8);
+
+      if (row.classList.contains("mine")) {
+        left = br.right - bw;
+      } else {
+        left = br.left;
+      }
+      if (left < 8) left = 8;
+      if (left + bw > window.innerWidth - 8) left = window.innerWidth - bw - 8;
+    }
+
+    bar.style.left = Math.round(left) + "px";
+    bar.style.top = Math.round(top) + "px";
+    bar.style.maxWidth = (vp.width - margin * 2) + "px";
   }
 
   function hideBar() {
     const bar = $("waMsgBar");
     if (bar) bar.classList.remove("open");
+    const bd = $("waMsgBackdrop");
+    if (bd) bd.classList.remove("open");
     activeRow = null;
   }
 
@@ -238,16 +291,47 @@
       }, 200);
     });
 
-    let pressTimer;
+    let pressTimer = null;
+    let startX = 0;
+    let startY = 0;
+    const MOVE_CANCEL = 12;
+
     row.addEventListener("touchstart", (e) => {
       if (e.target.closest(".reaction-chip")) return;
+      if (e.target.closest("a")) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+      startX = touch.clientX;
+      startY = touch.clientY;
+      clearTimeout(pressTimer);
       pressTimer = setTimeout(() => {
+        pressTimer = null;
         showBar(row);
-        if (navigator.vibrate) navigator.vibrate(12);
-      }, 400);
+        if (navigator.vibrate) {
+          try { navigator.vibrate(15); } catch (_) {}
+        }
+      }, 380);
     }, { passive: true });
-    row.addEventListener("touchend", () => clearTimeout(pressTimer));
-    row.addEventListener("touchmove", () => clearTimeout(pressTimer));
+
+    row.addEventListener("touchmove", (e) => {
+      if (!pressTimer) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+      if (Math.abs(touch.clientX - startX) > MOVE_CANCEL || Math.abs(touch.clientY - startY) > MOVE_CANCEL) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    }, { passive: true });
+
+    row.addEventListener("touchend", () => {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    });
+    row.addEventListener("touchcancel", () => {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    });
+
     row.addEventListener("contextmenu", (e) => {
       if (e.target.closest(".bubble") || e.target.closest(".row")) {
         e.preventDefault();
@@ -264,13 +348,14 @@
     if (!document.querySelector('link[href*="msg-actions-fix.css"]')) {
       const l = document.createElement("link");
       l.rel = "stylesheet";
-      l.href = "msg-actions-fix.css?v=2";
+      l.href = "msg-actions-fix.css?v=3";
       document.head.appendChild(l);
     }
 
     wireSendReply();
     ensureReplyBar();
     ensureBar();
+    ensureBackdrop();
 
     const box = $("messages");
     if (box) {
@@ -286,7 +371,7 @@
       const bar = $("waMsgBar");
       if (!bar || !bar.classList.contains("open")) return;
       if (e.target.closest("#waMsgBar")) return;
-      if (e.target.closest("#messages .row") && activeRow && activeRow.contains(e.target)) return;
+      if (e.target.closest("#waMsgBackdrop")) return;
       hideBar();
     });
     document.addEventListener("keydown", (e) => {
@@ -295,15 +380,20 @@
         clearReply();
       }
     });
-    const msgBox = $("messages");
-    if (msgBox) {
-      msgBox.addEventListener("scroll", () => hideBar(), { passive: true });
+    if (box) {
+      box.addEventListener("scroll", () => hideBar(), { passive: true });
     }
     window.addEventListener("resize", () => hideBar());
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        if (activeRow) showBar(activeRow);
+      });
+      window.visualViewport.addEventListener("scroll", () => hideBar());
+    }
 
     setTimeout(scan, 400);
     setTimeout(scan, 1200);
-    console.info("[kurakani] WhatsApp-style message actions ready");
+    console.info("[kurakani] WhatsApp actions — mobile responsive");
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
