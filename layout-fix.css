@@ -1,0 +1,135 @@
+/* CRITICAL: home visibility + natural message bubbles */
+.conversation.hidden,
+#conversationPanel.hidden,
+#conversationPanel.conversation.hidden {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+#conversationPanel.conversation:not(.hidden),
+.conversation:not(.hidden) {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+.chat-panel {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+#welcomePanel.welcome {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 0 !important;
+  width: 100% !important;
+  z-index: 2 !important;
+  background: var(--k-chat-bg, var(--bg, #0c0a12)) !important;
+}
+#welcomePanel.welcome.hidden {
+  display: none !important;
+}
+
+/* Full-width rows — shrink-wrap was collapsing bubbles to 1 character */
+#messages .row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 2px 0 !important;
+  padding: 0 12px !important;
+  position: relative !important;
+  grid-template-columns: none !important;
+  grid-template-areas: none !important;
+}
+#messages .row:not(.j-prev) { margin-top: 10px !important; }
+#messages .row.j-prev { margin-top: 2px !important; }
+#messages .row.theirs {
+  justify-content: flex-start !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+#messages .row.mine {
+  justify-content: flex-end !important;
+  flex-direction: row-reverse !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+#messages .row .avatar,
+#messages .row .avatar.xs,
+#messages .row .av-gap {
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  margin: 0 0 2px 0 !important;
+}
+#messages .row.mine .avatar,
+#messages .row.mine .av-gap { display: none !important; }
+#messages .row.theirs.j-prev > .avatar { visibility: hidden !important; }
+
+#messages .bubble {
+  display: block !important;
+  flex: 0 1 auto !important;
+  width: auto !important;
+  max-width: min(75%, 420px) !important;
+  min-width: 36px !important;
+  padding: 8px 12px !important;
+  border-radius: 18px !important;
+  font-size: 0.95rem !important;
+  line-height: 1.4 !important;
+  white-space: pre-wrap !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  hyphens: none !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+#messages .bubble * {
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+}
+#messages .row.mine .bubble {
+  background: var(--k-out, #7c5cfc) !important;
+  color: var(--k-out-text, #fff) !important;
+  border-bottom-right-radius: 6px !important;
+}
+#messages .row.theirs .bubble {
+  background: var(--k-in, #2a2438) !important;
+  color: var(--text) !important;
+  border-bottom-left-radius: 6px !important;
+}
+
+#messages .msg-reactions {
+  position: static !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  margin-top: 4px !important;
+  order: 2;
+  flex: 0 0 100%;
+}
+#messages .row.theirs .msg-reactions { padding-left: 36px; }
+#messages .row.mine .msg-reactions {
+  justify-content: flex-end;
+  padding-right: 0;
+}
+
+@media (min-width: 900px) {
+  #messages .bubble { max-width: min(68%, 480px) !important; }
+}
+@media (max-width: 720px) {
+  #messages .bubble { max-width: min(82%, 100%) !important; }
+  #messages .row { padding: 0 10px !important; }
+}

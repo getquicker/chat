@@ -21,7 +21,7 @@
       "reactions.js?v=3",
       "call-viewport.js?v=1",
       "motion.js?v=1",
-      "brand-boot.js?v=9",
+      "brand-boot.js?v=10",
       "motion-messages.js?v=1",
       "msg-actions-fix.js?v=3",
       "chat-scroll-fix.js?v=2"

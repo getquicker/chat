@@ -1,5 +1,5 @@
 (() => {
-  ["motion.css?v=1", "polish.css?v=1", "style-shift.css?v=1", "desktop-ui.css?v=1", "kurakani.css?v=3", "msg-actions.css?v=3"].forEach((href) => {
+  ["motion.css?v=1", "polish.css?v=1", "style-shift.css?v=1", "desktop-ui.css?v=1", "kurakani.css?v=4", "msg-actions.css?v=4", "layout-fix.css?v=1"].forEach((href) => {
     if ([...document.styleSheets].some((s) => (s.href || "").includes(href.split("?")[0]))) return;
     const l = document.createElement("link");
     l.rel = "stylesheet";

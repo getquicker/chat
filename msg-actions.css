@@ -1,14 +1,11 @@
-/* Reliable message actions + stable layout */
+/* Message actions + panels */
 #messages .msg-actions {
   position: absolute !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
   display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
   gap: 2px !important;
   padding: 3px 4px !important;
-  margin: 0 !important;
   z-index: 20 !important;
   background: var(--surface, #1e1a2a) !important;
   border: 1px solid var(--line-soft, #3a3348) !important;
@@ -18,20 +15,9 @@
   pointer-events: none !important;
   transition: opacity 140ms ease !important;
   white-space: nowrap !important;
-  width: auto !important;
-  height: auto !important;
-  left: auto !important;
-  right: auto !important;
-  bottom: auto !important;
 }
-#messages .row.mine .msg-actions {
-  right: calc(100% + 8px) !important;
-  left: auto !important;
-}
-#messages .row.theirs .msg-actions {
-  left: calc(100% + 8px) !important;
-  right: auto !important;
-}
+#messages .row.mine .msg-actions { right: calc(100% - 8px) !important; left: auto !important; }
+#messages .row.theirs .msg-actions { left: calc(100% - 8px) !important; right: auto !important; }
 #messages .row:hover .msg-actions,
 #messages .row:focus-within .msg-actions,
 #messages .row.actions-open .msg-actions,
@@ -47,14 +33,11 @@
   border-radius: 50% !important;
   background: transparent !important;
   color: var(--text, #eee) !important;
-  box-shadow: none !important;
   display: grid !important;
   place-items: center !important;
   cursor: pointer !important;
   padding: 0 !important;
   font-size: 1rem !important;
-  line-height: 1 !important;
-  flex-shrink: 0 !important;
 }
 #messages .msg-act:hover {
   background: var(--primary-soft, rgba(124, 92, 252, 0.2)) !important;
@@ -67,22 +50,17 @@
     opacity: 1 !important;
     pointer-events: auto !important;
     margin: 4px 0 0 !important;
-    grid-column: 1 / -1 !important;
     width: fit-content !important;
-    justify-self: start !important;
   }
-  #messages .row.mine .msg-actions {
-    justify-self: end !important;
-    margin-left: auto !important;
-  }
+  #messages .row.mine .msg-actions { margin-left: auto !important; }
 }
+
 #reactPicker,
 .react-picker {
   position: fixed !important;
   z-index: 2000 !important;
   display: none !important;
   flex-direction: row !important;
-  align-items: center !important;
   gap: 2px !important;
   padding: 6px 8px !important;
   background: var(--surface, #1e1a2a) !important;
@@ -91,9 +69,7 @@
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35) !important;
 }
 #reactPicker.open,
-.react-picker.open {
-  display: flex !important;
-}
+.react-picker.open { display: flex !important; }
 #reactPicker button,
 .react-picker button {
   width: 40px !important;
@@ -103,22 +79,19 @@
   border-radius: 50% !important;
   font-size: 1.35rem !important;
   cursor: pointer !important;
-  line-height: 1 !important;
-  padding: 0 !important;
-}
-#reactPicker button:hover,
-.react-picker button:hover {
-  background: var(--surface-2, #2a2438) !important;
-  transform: scale(1.12);
 }
 
-#conversationPanel.conversation,
-.conversation {
+#conversationPanel.conversation:not(.hidden),
+.conversation:not(.hidden) {
   display: flex !important;
   flex-direction: column !important;
   min-height: 0 !important;
   height: 100% !important;
   overflow: hidden !important;
+}
+#conversationPanel.hidden,
+.conversation.hidden {
+  display: none !important;
 }
 .messages-wrap {
   flex: 1 1 auto !important;
@@ -126,7 +99,6 @@
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
-  position: relative !important;
 }
 #messages.messages {
   flex: 1 1 auto !important;
@@ -134,7 +106,6 @@
   overflow-y: auto !important;
   overflow-x: hidden !important;
   overscroll-behavior: contain !important;
-  -webkit-overflow-scrolling: touch;
   scroll-behavior: auto !important;
 }
 
@@ -153,13 +124,10 @@
   border-left: 3px solid var(--primary, #7c5cfc) !important;
   color: var(--text) !important;
   font-size: 0.85rem !important;
-  position: relative !important;
   z-index: 5 !important;
 }
 #replyBar.active,
-.reply-bar.active {
-  display: flex !important;
-}
+.reply-bar.active { display: flex !important; }
 .reply-bar-body {
   flex: 1 1 auto !important;
   min-width: 0 !important;
@@ -167,67 +135,25 @@
   flex-direction: column !important;
   gap: 2px !important;
 }
-.reply-bar-body strong,
-#replyBarLabel {
-  font-size: 0.72rem !important;
-  font-weight: 650 !important;
-  color: var(--primary, #a78bfa) !important;
-}
-.reply-bar-body span,
+#replyBarLabel { font-size: 0.72rem !important; font-weight: 650 !important; color: var(--primary, #a78bfa) !important; }
 #replyBarText {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   color: var(--muted, #9b94ad) !important;
-  font-size: 0.85rem !important;
 }
-.reply-bar-close,
 #replyBarClose {
   width: 32px !important;
   height: 32px !important;
-  min-width: 32px !important;
   border: none !important;
   border-radius: 50% !important;
   background: transparent !important;
   color: var(--muted) !important;
   cursor: pointer !important;
-  font-size: 1rem !important;
-  flex-shrink: 0 !important;
-  display: grid !important;
-  place-items: center !important;
-}
-.reply-bar-close:hover,
-#replyBarClose:hover {
-  background: var(--surface-3, #2a2438) !important;
-  color: var(--text) !important;
 }
 #messageForm.composer,
 .composer {
   flex: 0 0 auto !important;
   width: 100% !important;
   box-sizing: border-box !important;
-}
-@media (min-width: 900px) {
-  #replyBar.active,
-  .reply-bar.active {
-    padding-left: max(16px, calc(50% - 400px)) !important;
-    padding-right: max(16px, calc(50% - 400px)) !important;
-  }
-}
-@media (min-width: 1280px) {
-  #replyBar.active,
-  .reply-bar.active {
-    padding-left: max(24px, calc(50% - 440px)) !important;
-    padding-right: max(24px, calc(50% - 440px)) !important;
-  }
-}
-@media (max-width: 720px) {
-  #replyBar,
-  .reply-bar {
-    padding: 8px 12px !important;
-  }
-}
-#messages .row.k-enter {
-  animation-duration: 160ms !important;
-  animation-fill-mode: both !important;
 }
