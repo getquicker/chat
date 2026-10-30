@@ -1,9 +1,9 @@
 /**
- * WhatsApp-style message actions & reactions
- * Toolbar is position:fixed so it is never clipped by #messages overflow.
+ * WhatsApp-style message actions — mobile-first responsive
+ * Fixed toolbar is never clipped by #messages overflow.
  */
 
-/* Reactions under bubble, slightly overlapping like WhatsApp */
+/* ----- Reaction chips under bubble ----- */
 #messages .msg-reactions {
   position: static !important;
   display: flex !important;
@@ -12,7 +12,7 @@
   margin-top: -6px !important;
   margin-bottom: 2px !important;
   padding: 0 4px !important;
-  max-width: min(85%, 360px) !important;
+  max-width: min(90%, 360px) !important;
   z-index: 2 !important;
 }
 #messages .msg-reactions:empty { display: none !important; margin: 0 !important; }
@@ -22,6 +22,8 @@
 #messages .reaction-chip {
   font-size: 14px !important;
   line-height: 1 !important;
+  min-height: 28px !important;
+  min-width: 28px !important;
   padding: 4px 8px !important;
   border-radius: 12px !important;
   background: var(--k-surface, #1f1f28) !important;
@@ -29,18 +31,16 @@
   color: var(--k-text, #fff) !important;
   cursor: pointer !important;
   box-shadow: 0 1px 4px rgba(0,0,0,.25) !important;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 #messages .reaction-chip.mine {
   border-color: var(--k-primary, #6d28d9) !important;
   background: rgba(109, 40, 217, 0.2) !important;
 }
 
-/* Hide old in-row action pills — replaced by fixed WhatsApp bar */
-#messages .msg-actions {
-  display: none !important;
-}
+#messages .msg-actions { display: none !important; }
 
-/* Reply quote inside bubble */
 #messages .bubble {
   display: flex !important;
   flex-direction: column !important;
@@ -69,7 +69,7 @@
   overflow-wrap: anywhere;
 }
 
-/* ===== WhatsApp-style floating action bar (fixed, never clipped) ===== */
+/* ----- Floating bar (fixed) ----- */
 .wa-msg-bar {
   position: fixed;
   z-index: 1500;
@@ -79,20 +79,30 @@
   padding: 4px 6px;
   border-radius: 24px;
   background: #233138;
-  box-shadow: 0 4px 20px rgba(0,0,0,.45);
+  box-shadow: 0 4px 24px rgba(0,0,0,.5);
   border: 1px solid rgba(255,255,255,.08);
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
 }
+.wa-msg-bar::-webkit-scrollbar { display: none; }
+
 html[data-theme="light"] .wa-msg-bar {
   background: #fff;
   border-color: #e5e7eb;
-  box-shadow: 0 4px 18px rgba(0,0,0,.15);
+  box-shadow: 0 4px 20px rgba(0,0,0,.18);
 }
+
 .wa-msg-bar.open {
   display: flex;
   animation: waBarIn 120ms ease-out;
 }
 @keyframes waBarIn {
-  from { opacity: 0; transform: scale(0.92); }
+  from { opacity: 0; transform: scale(0.94); }
   to { opacity: 1; transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -102,6 +112,7 @@ html[data-theme="light"] .wa-msg-bar {
 .wa-msg-bar button {
   width: 40px;
   height: 40px;
+  min-width: 40px;
   border: none;
   border-radius: 50%;
   background: transparent;
@@ -113,10 +124,12 @@ html[data-theme="light"] .wa-msg-bar {
   place-items: center;
   flex-shrink: 0;
   transition: background 100ms ease, transform 100ms ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  padding: 0;
 }
-html[data-theme="light"] .wa-msg-bar button {
-  color: #111b21;
-}
+html[data-theme="light"] .wa-msg-bar button { color: #111b21; }
+
 .wa-msg-bar button:hover {
   background: rgba(255,255,255,.1);
   transform: scale(1.08);
@@ -125,8 +138,10 @@ html[data-theme="light"] .wa-msg-bar button:hover {
   background: rgba(0,0,0,.06);
 }
 .wa-msg-bar button:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
+  background: rgba(255,255,255,.14);
 }
+
 .wa-msg-bar .wa-sep {
   width: 1px;
   height: 24px;
@@ -134,24 +149,64 @@ html[data-theme="light"] .wa-msg-bar button:hover {
   margin: 0 2px;
   flex-shrink: 0;
 }
-html[data-theme="light"] .wa-msg-bar .wa-sep {
-  background: rgba(0,0,0,.1);
-}
+html[data-theme="light"] .wa-msg-bar .wa-sep { background: rgba(0,0,0,.1); }
+
 .wa-msg-bar .wa-act {
-  font-size: 13px;
-  font-weight: 500;
   width: auto;
   min-width: 40px;
   padding: 0 10px;
   border-radius: 20px;
-  gap: 4px;
 }
 .wa-msg-bar .wa-act svg {
   width: 18px;
   height: 18px;
+  pointer-events: none;
 }
 
-/* Reply bar above composer — WhatsApp style */
+/* Mobile: larger targets + safe area */
+@media (hover: none), (max-width: 640px) {
+  .wa-msg-bar {
+    padding: 6px 8px;
+    border-radius: 28px;
+    gap: 4px;
+    max-width: calc(100vw - 24px);
+  }
+  .wa-msg-bar button {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 22px;
+  }
+  .wa-msg-bar .wa-act {
+    min-width: 44px;
+    padding: 0 12px;
+  }
+  .wa-msg-bar .wa-act svg {
+    width: 20px;
+    height: 20px;
+  }
+  .wa-msg-bar .wa-sep {
+    height: 28px;
+  }
+}
+
+/* Dim backdrop on mobile when bar is open */
+.wa-msg-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1490;
+  background: rgba(0,0,0,.35);
+  display: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.wa-msg-backdrop.open {
+  display: block;
+}
+@media (hover: hover) and (pointer: fine) {
+  .wa-msg-backdrop { display: none !important; }
+}
+
+/* Reply strip */
 .reply-bar {
   display: none;
   align-items: stretch;
@@ -172,7 +227,7 @@ html[data-theme="light"] .reply-bar {
 .reply-bar-body {
   flex: 1;
   min-width: 0;
-  padding: 8px 12px;
+  padding: 10px 12px;
 }
 .reply-bar-body strong {
   display: block;
@@ -189,14 +244,27 @@ html[data-theme="light"] .reply-bar {
   white-space: nowrap;
 }
 .reply-bar-close {
-  width: 44px;
+  width: 48px;
+  min-width: 48px;
   border: none;
   background: transparent;
   color: #8696a0;
   cursor: pointer;
   font-size: 18px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .reply-bar-close:hover { color: #e9edef; }
 
-/* Hide legacy react-picker (replaced by wa-msg-bar) */
 .react-picker { display: none !important; }
+
+@media (hover: none) {
+  #messages .row {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #messages .bubble {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
