@@ -6,11 +6,8 @@
   "start_url": "/chat/",
   "scope": "/chat/",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
-  "background_color": "#f0f2f5",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0f1115",
   "theme_color": "#0084ff",
   "orientation": "any",
   "icons": [
@@ -23,6 +20,12 @@
     {
       "src": "icons/icon-512.svg",
       "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/favicon.svg",
+      "sizes": "32x32",
       "type": "image/svg+xml",
       "purpose": "any"
     }

@@ -1,0 +1,130 @@
+/* Motion system */
+:root {
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-slow: 280ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .row.msg-enter { opacity: 1; transform: none; }
+}
+
+.row.msg-enter {
+  animation: msgIn var(--motion-base) var(--ease-out) both;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.reaction-chip {
+  transition: transform var(--motion-fast) var(--ease-out), background var(--motion-fast);
+}
+.reaction-chip:active { transform: scale(0.92); }
+.reaction-chip.mine {
+  background: var(--primary-soft);
+  outline: 1px solid var(--primary-muted);
+}
+
+.chat-item {
+  transition: background var(--motion-fast) var(--ease-in-out), transform var(--motion-fast);
+}
+.chat-item:hover { background: var(--surface-2); }
+.chat-item:active { transform: scale(0.99); }
+.chat-item.active { background: var(--primary-soft); }
+
+.icon-btn,
+.call-btn,
+.primary,
+.send,
+.tab,
+.details-action {
+  transition: background var(--motion-fast), color var(--motion-fast), transform var(--motion-fast), box-shadow var(--motion-fast);
+}
+.icon-btn:hover,
+.call-btn:hover { background: var(--surface-3); }
+.icon-btn:active,
+.call-btn:active,
+.send:active,
+.primary:active { transform: scale(0.96); }
+.primary:focus-visible,
+.icon-btn:focus-visible,
+.send:focus-visible,
+.tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+dialog[open] {
+  animation: dialogIn var(--motion-base) var(--ease-out);
+}
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  animation: fadeIn var(--motion-base) var(--ease-out);
+}
+@keyframes dialogIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .conversation:not(.hidden) {
+    animation: slideInRight var(--motion-slow) var(--ease-out);
+  }
+}
+@keyframes slideInRight {
+  from { opacity: 0.6; transform: translateX(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 0;
+}
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite linear;
+  border-radius: var(--radius);
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.toast.show {
+  animation: toastIn var(--motion-base) var(--ease-out);
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}

@@ -1,5 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <rect width="192" height="192" rx="42" fill="#0866ff"/>
-  <path d="M96 35c-36 0-65 25-65 56 0 17 9 32 24 42v27l28-15c4 1 9 2 13 2 36 0 65-25 65-56S132 35 96 35z" fill="#fff"/>
-  <circle cx="70" cy="91" r="6" fill="#0866ff"/><circle cx="96" cy="91" r="6" fill="#0866ff"/><circle cx="122" cy="91" r="6" fill="#0866ff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" role="img" aria-label="SimpleChat">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0084ff"/>
+      <stop offset="100%" stop-color="#00b4d8"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="44" fill="url(#g)"/>
+  <path d="M118 48c22 0 40 15 40 34 0 12-6 23-16 29v18l-18-11c-2 .3-4 .5-6 .5-22 0-40-15-40-34s18-36.5 40-36.5z" fill="#fff" opacity=".35"/>
+  <path d="M74 58c-28 0-50 19-50 43 0 15 8 28 21 36v22l24-14c2 .4 4 .6 5 .6 28 0 50-19 50-43S102 58 74 58z" fill="#fff"/>
+  <path d="M58 92c4-10 14-16 26-16" fill="none" stroke="#0084ff" stroke-width="6" stroke-linecap="round" opacity=".55"/>
 </svg>

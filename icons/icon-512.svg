@@ -1,5 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="112" fill="#0866ff"/>
-  <path d="M256 94c-96 0-174 66-174 150 0 45 24 86 64 112v72l75-40c11 3 23 5 35 5 96 0 174-66 174-149S352 94 256 94z" fill="#fff"/>
-  <circle cx="186" cy="244" r="16" fill="#0866ff"/><circle cx="256" cy="244" r="16" fill="#0866ff"/><circle cx="326" cy="244" r="16" fill="#0866ff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="SimpleChat">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0084ff"/>
+      <stop offset="100%" stop-color="#00b4d8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <path d="M314 128c59 0 106 40 106 90 0 32-16 60-42 76v48l-48-29c-5 .8-10 1.2-16 1.2-59 0-106-40-106-90s47-96.2 106-96.2z" fill="#fff" opacity=".35"/>
+  <path d="M198 154c-74 0-134 50-134 114 0 40 21 75 56 96v58l64-37c5 1 11 1.5 14 1.5 74 0 134-50 134-114S272 154 198 154z" fill="#fff"/>
+  <path d="M154 246c11-26 37-42 68-42" fill="none" stroke="#0084ff" stroke-width="16" stroke-linecap="round" opacity=".55"/>
 </svg>
