@@ -14,7 +14,7 @@
   }
 
   function ensureCss() {
-    ["msg-actions.css?v=6", "mobile-fix.css?v=1", "layout-fix.css?v=2", "reply-mobile.css?v=1"].forEach((href) => {
+    ["msg-actions.css?v=6", "mobile-fix.css?v=1", "layout-fix.css?v=2", "reply-mobile.css?v=1", "desktop-popups.css?v=1"].forEach((href) => {
       if (document.querySelector('link[href*="' + href.split("?")[0] + '"]')) return;
       const l = document.createElement("link");
       l.rel = "stylesheet";
@@ -51,17 +51,11 @@
       return;
     }
     ensureReplyBar();
-    const clean = String(text || "")
-      .replace(/\u00ABreply:[^\u00BB]*\u00BB\s*/g, "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 100);
+    const clean = String(text || "").replace(/\u00ABreply:[^\u00BB]*\u00BB\s*/g, "").replace(/\s+/g, " ").trim().slice(0, 100);
     replyTarget = { id: String(msgId), text: clean };
     const bar = $("replyBar");
     const form = $("messageForm");
-    if (bar && form && form.parentNode && bar.nextElementSibling !== form) {
-      form.parentNode.insertBefore(bar, form);
-    }
+    if (bar && form && form.parentNode && bar.nextElementSibling !== form) form.parentNode.insertBefore(bar, form);
     if (!bar) return;
     const label = $("replyBarLabel");
     const txt = $("replyBarText");
@@ -79,8 +73,8 @@
     p.id = "reactPicker";
     p.className = "react-picker";
     p.setAttribute("role", "listbox");
-    p.innerHTML = EMOJIS.map(
-      (e) => '<button type="button" data-emoji="' + e + '" aria-label="React ' + e + '">' + e + "</button>"
+    p.innerHTML = EMOJIS.map((e) =>
+      '<button type="button" data-emoji="' + e + '" aria-label="React ' + e + '">' + e + "</button>"
     ).join("");
     document.body.appendChild(p);
     p.addEventListener("click", (e) => {
@@ -88,11 +82,8 @@
       if (!b || !p.dataset.msgId) return;
       e.preventDefault();
       e.stopPropagation();
-      if (typeof window.__scToggleReaction === "function") {
-        window.__scToggleReaction(p.dataset.msgId, b.dataset.emoji);
-      } else {
-        document.dispatchEvent(new CustomEvent("sc-react", { detail: { msgId: p.dataset.msgId, emoji: b.dataset.emoji } }));
-      }
+      if (typeof window.__scToggleReaction === "function") window.__scToggleReaction(p.dataset.msgId, b.dataset.emoji);
+      else document.dispatchEvent(new CustomEvent("sc-react", { detail: { msgId: p.dataset.msgId, emoji: b.dataset.emoji } }));
       closeReact();
     });
     document.addEventListener("click", (e) => {
@@ -116,13 +107,17 @@
     requestAnimationFrame(() => {
       if (isMobile()) { p.style.left = ""; p.style.top = ""; return; }
       const r = btn.getBoundingClientRect();
-      const pw = p.offsetWidth || 240;
-      const ph = p.offsetHeight || 52;
-      let left = Math.max(8, Math.min(r.left + r.width / 2 - pw / 2, window.innerWidth - pw - 8));
-      let top = r.top - ph - 10;
-      if (top < 8) top = r.bottom + 10;
+      const pw = p.offsetWidth || 280;
+      const ph = p.offsetHeight || 60;
+      let left = r.left + r.width / 2 - pw / 2;
+      left = Math.max(12, Math.min(left, window.innerWidth - pw - 12));
+      let top = r.top - ph - 12;
+      if (top < 12) top = r.bottom + 12;
+      if (top + ph > window.innerHeight - 12) top = Math.max(12, window.innerHeight - ph - 12);
       p.style.left = left + "px";
       p.style.top = top + "px";
+      p.style.right = "auto";
+      p.style.bottom = "auto";
       p.style.transform = "none";
     });
   }
@@ -161,37 +156,6 @@
         openReactPicker(b, msgId);
       }
     }, true);
-
-    let pressTimer = null;
-    const bubble = row.querySelector(".bubble");
-    if (bubble) {
-      bubble.addEventListener("touchstart", () => {
-        if (!isMobile()) return;
-        pressTimer = setTimeout(() => {
-          closeAllActions();
-          row.classList.add("actions-open", "show-actions");
-          openRow = row;
-          try { if (navigator.vibrate) navigator.vibrate(12); } catch (err) {}
-        }, 420);
-      }, { passive: true });
-      const cancel = () => { if (pressTimer) clearTimeout(pressTimer); pressTimer = null; };
-      bubble.addEventListener("touchend", cancel, { passive: true });
-      bubble.addEventListener("touchmove", cancel, { passive: true });
-      bubble.addEventListener("touchcancel", cancel, { passive: true });
-
-      let lastTap = 0;
-      bubble.addEventListener("click", (e) => {
-        if (!isMobile()) return;
-        const now = Date.now();
-        if (now - lastTap < 320) {
-          e.preventDefault();
-          e.stopPropagation();
-          const msgId = row.dataset.msgId || row.getAttribute("data-id") || "";
-          if (typeof window.__scToggleReaction === "function") window.__scToggleReaction(msgId, "\u2764\uFE0F");
-          lastTap = 0;
-        } else lastTap = now;
-      }, true);
-    }
   }
 
   function ensureActions(row) {
@@ -275,12 +239,6 @@
         clearReply();
       });
     }
-    document.addEventListener("click", (e) => {
-      if (!openRow) return;
-      if (e.target.closest && e.target.closest("#messages .row.actions-open")) return;
-      if (e.target.closest && e.target.closest("#reactPicker")) return;
-      closeAllActions();
-    }, true);
   }
 
   function boot() {

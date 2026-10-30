@@ -1,0 +1,108 @@
+/* Desktop reply / react popups redesign */
+@media (hover: hover) and (min-width: 721px) {
+  #messages .msg-actions {
+    position: absolute !important;
+    top: -42px !important;
+    transform: none !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+    padding: 4px 6px !important;
+    z-index: 30 !important;
+    background: #1e1a2a !important;
+    border: 1px solid #3a3348 !important;
+    border-radius: 999px !important;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.15s ease !important;
+    white-space: nowrap !important;
+    left: 50% !important;
+    right: auto !important;
+  }
+  html[data-theme="light"] #messages .msg-actions {
+    background: #ffffff !important;
+    border-color: #e0d8ec !important;
+    box-shadow: 0 8px 24px rgba(40, 20, 80, 0.12) !important;
+  }
+  #messages .row.mine .msg-actions {
+    left: auto !important;
+    right: 12px !important;
+  }
+  #messages .row.theirs .msg-actions {
+    left: 44px !important;
+    right: auto !important;
+  }
+  #messages .row:hover .msg-actions,
+  #messages .row:focus-within .msg-actions,
+  #messages .row.actions-open .msg-actions {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  #messages .msg-act {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border: none !important;
+    border-radius: 50% !important;
+    background: transparent !important;
+    color: #d4cce8 !important;
+    display: grid !important;
+    place-items: center !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    font-size: 1.05rem !important;
+    transition: background 0.12s, color 0.12s, transform 0.12s !important;
+  }
+  html[data-theme="light"] #messages .msg-act { color: #4a3f63 !important; }
+  #messages .msg-act:hover {
+    background: rgba(124, 92, 252, 0.22) !important;
+    color: #c4b5fd !important;
+    transform: scale(1.08);
+  }
+
+  #reactPicker,
+  .react-picker {
+    position: fixed !important;
+    z-index: 3500 !important;
+    display: none !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 8px 10px !important;
+    background: #1e1a2a !important;
+    border: 1px solid #3a3348 !important;
+    border-radius: 999px !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45) !important;
+  }
+  html[data-theme="light"] #reactPicker {
+    background: #fff !important;
+    border-color: #e0d8ec !important;
+    box-shadow: 0 12px 32px rgba(40, 20, 80, 0.14) !important;
+  }
+  #reactPicker.open,
+  .react-picker.open {
+    display: flex !important;
+    animation: kReactIn 0.16s ease-out;
+  }
+  @keyframes kReactIn {
+    from { opacity: 0; transform: scale(0.92) translateY(6px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  #reactPicker button,
+  .react-picker button {
+    width: 44px !important;
+    height: 44px !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 50% !important;
+    font-size: 1.45rem !important;
+    cursor: pointer !important;
+    line-height: 1 !important;
+    transition: transform 0.12s ease, background 0.12s !important;
+  }
+  #reactPicker button:hover {
+    background: rgba(124, 92, 252, 0.2) !important;
+    transform: scale(1.2);
+  }
+}
