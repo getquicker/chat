@@ -1,13 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" role="img" aria-label="SimpleChat">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" role="img" aria-label="Kurakani">
   <defs>
     <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7c5cfc"/>
-      <stop offset="55%" stop-color="#a78bfa"/>
+      <stop offset="0%" stop-color="#6d28d9"/>
+      <stop offset="55%" stop-color="#8b5cf6"/>
       <stop offset="100%" stop-color="#c084fc"/>
     </linearGradient>
   </defs>
   <rect width="192" height="192" rx="48" fill="url(#g)"/>
-  <path d="M118 48c22 0 40 15 40 34 0 12-6 23-16 29v18l-18-11c-2 .3-4 .5-6 .5-22 0-40-15-40-34s18-36.5 40-36.5z" fill="#fff" opacity=".3"/>
-  <path d="M74 58c-28 0-50 19-50 43 0 15 8 28 21 36v22l24-14c2 .4 4 .6 5 .6 28 0 50-19 50-43S102 58 74 58z" fill="#fff"/>
-  <path d="M58 92c4-10 14-16 26-16" fill="none" stroke="#7c5cfc" stroke-width="6" stroke-linecap="round" opacity=".5"/>
+  <path d="M96 40c-32 0-58 22-58 50 0 16 8 30 22 39v24l26-15c3 .5 7 1 10 1 32 0 58-22 58-50S128 40 96 40z" fill="#fff"/>
+  <text x="96" y="98" text-anchor="middle" font-family="system-ui,Segoe UI,sans-serif" font-weight="700" font-size="42" fill="#6d28d9">K</text>
 </svg>

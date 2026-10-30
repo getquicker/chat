@@ -1,0 +1,215 @@
+/* Kurakani — clean Messenger-style messages */
+#messages .row {
+  position: relative;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  margin: 2px 12px !important;
+  max-width: 100%;
+}
+#messages .row.mine { justify-content: flex-end !important; }
+#messages .row.theirs { justify-content: flex-start !important; }
+#messages .row:has(.msg-reactions:not(:empty)),
+#messages .row:has(.msg-reactions button) {
+  margin-bottom: 18px !important;
+}
+#messages .row .avatar,
+#messages .row .avatar.xs {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  font-size: 0.7rem !important;
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 2px;
+  overflow: hidden;
+}
+#messages .row .av-gap {
+  width: 28px;
+  min-width: 28px;
+  flex-shrink: 0;
+}
+#messages .bubble {
+  position: relative;
+  max-width: min(75%, 420px) !important;
+  padding: 8px 12px !important;
+  border-radius: 18px !important;
+  line-height: 1.4 !important;
+  font-size: 0.95rem !important;
+  word-break: break-word;
+  box-shadow: none !important;
+}
+#messages .row.mine .bubble {
+  background: var(--grad, linear-gradient(135deg, #7c5cfc, #a78bfa)) !important;
+  color: #fff !important;
+  border-bottom-right-radius: 4px !important;
+}
+#messages .row.theirs .bubble {
+  background: var(--bubble-in, #efeaf8) !important;
+  color: var(--text) !important;
+  border-bottom-left-radius: 4px !important;
+}
+#messages .row.j-next.mine .bubble { border-bottom-right-radius: 18px !important; }
+#messages .row.j-prev.mine .bubble { border-top-right-radius: 4px !important; }
+#messages .row.j-next.theirs .bubble { border-bottom-left-radius: 18px !important; }
+#messages .row.j-prev.theirs .bubble { border-top-left-radius: 4px !important; }
+
+#messages .msg-reactions {
+  position: absolute !important;
+  bottom: -14px !important;
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 4px !important;
+  z-index: 2;
+  max-width: 90%;
+}
+#messages .row.mine .msg-reactions {
+  right: 4px !important;
+  left: auto !important;
+  justify-content: flex-end;
+}
+#messages .row.theirs .msg-reactions {
+  left: 36px !important;
+  right: auto !important;
+}
+#messages .reaction-chip {
+  font-size: 12px !important;
+  line-height: 1 !important;
+  padding: 2px 7px !important;
+  border-radius: 999px !important;
+  background: var(--surface, #fff) !important;
+  border: 1px solid var(--line-soft, #e5e5e5) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  cursor: pointer;
+  white-space: nowrap;
+}
+#messages .reaction-chip.mine {
+  border-color: var(--primary-muted, #c4b5fd) !important;
+  background: var(--primary-soft, #f0ebff) !important;
+}
+
+#messages .msg-actions {
+  position: absolute !important;
+  top: 50% !important;
+  bottom: auto !important;
+  display: flex !important;
+  gap: 2px !important;
+  z-index: 3;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 120ms ease;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line-soft, #e5e5e5);
+  border-radius: 999px;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1);
+}
+#messages .row.mine .msg-actions {
+  right: auto !important;
+  left: -4px !important;
+  transform: translate(-100%, -50%);
+}
+#messages .row.theirs .msg-actions {
+  left: auto !important;
+  right: -4px !important;
+  transform: translate(100%, -50%);
+}
+#messages .row:hover .msg-actions,
+#messages .row:focus-within .msg-actions,
+#messages .row.actions-open .msg-actions {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+#messages .msg-act {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--muted, #666) !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  font-size: 0.85rem !important;
+  display: grid;
+  place-items: center;
+  padding: 0 !important;
+}
+#messages .msg-act:hover {
+  background: var(--surface-2, #f0f0f0) !important;
+  color: var(--text) !important;
+}
+
+#messages .reply-preview {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  border-left: 3px solid rgba(255,255,255,.5);
+  padding: 2px 0 2px 8px;
+  margin-bottom: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#messages .row.theirs .reply-preview {
+  border-left-color: var(--primary, #7c5cfc);
+}
+
+.composer {
+  background: var(--surface) !important;
+  border-top: 1px solid var(--line-soft);
+  padding: 10px 16px !important;
+  padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+}
+#messageInput {
+  border-radius: 22px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--surface-2) !important;
+  min-height: 44px !important;
+  padding: 10px 16px !important;
+}
+.send {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+}
+
+#messages .stamp {
+  text-align: center;
+  margin: 16px auto 12px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: var(--surface-2);
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#reactPicker, .react-picker {
+  position: fixed;
+  z-index: 1200;
+  display: none;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.15);
+}
+#reactPicker.open, .react-picker.open { display: flex !important; }
+#reactPicker button, .react-picker button {
+  width: 36px; height: 36px; border: none; background: transparent;
+  border-radius: 50%; font-size: 1.2rem; cursor: pointer;
+}
+#reactPicker button:hover, .react-picker button:hover {
+  background: var(--surface-2);
+  transform: scale(1.12);
+}
+
+@media (min-width: 900px) {
+  #messages .bubble { max-width: min(65%, 460px) !important; }
+  #messages .row { margin-left: 16px !important; margin-right: 16px !important; }
+}

@@ -1,14 +1,14 @@
 {
   "id": "/chat/",
-  "name": "SimpleChat",
-  "short_name": "SimpleChat",
-  "description": "Private conversations and video calls.",
+  "name": "Kurakani",
+  "short_name": "Kurakani",
+  "description": "Kurakani — private conversations and video calls.",
   "start_url": "/chat/",
   "scope": "/chat/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0c0a12",
-  "theme_color": "#7c5cfc",
+  "theme_color": "#6d28d9",
   "orientation": "any",
   "icons": [
     { "src": "icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
