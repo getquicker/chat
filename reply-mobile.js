@@ -1,6 +1,6 @@
 (() => {
   const $ = (id) => document.getElementById(id);
-  const REPLY_RE = /\u00ABreply:([^\u00BB]*)\u00BB\s*([^\n]*)\n?/;
+  const REPLY_RE = /\u00ABreply:([^\u00BB]*)\u00BB\s*([^\n]*)(?:\n|$)/;
 
   function ensureBar() {
     let bar = $("replyBar");
@@ -48,35 +48,28 @@
     if (label) label.textContent = "Replying";
     if (txt) txt.textContent = clean || "Message";
     bar.classList.add("active");
-
     const input = $("messageInput");
     if (input) {
       setTimeout(() => {
-        try {
-          input.focus({ preventScroll: false });
-        } catch (e) {
-          input.focus();
-        }
+        try { input.focus({ preventScroll: false }); } catch (e) { input.focus(); }
         const msgs = $("messages");
         if (msgs) msgs.scrollTop = msgs.scrollHeight;
-      }, 80);
+      }, 60);
     }
   }
 
   function wireClose() {
-    const bar = ensureBar();
-    if (!bar) return;
+    ensureBar();
     const btn = $("replyBarClose");
-    if (btn && !btn.dataset.replyCloseWired) {
-      btn.dataset.replyCloseWired = "1";
-      const close = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        clearReply();
-      };
-      btn.addEventListener("click", close);
-      btn.addEventListener("touchend", close, { passive: false });
-    }
+    if (!btn || btn.dataset.replyCloseWired) return;
+    btn.dataset.replyCloseWired = "1";
+    const close = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearReply();
+    };
+    btn.addEventListener("click", close);
+    btn.addEventListener("touchend", close, { passive: false });
   }
 
   function wireSubmit() {
@@ -90,11 +83,8 @@
         if (!target) return;
         const input = $("messageInput");
         if (!input || !input.value.trim()) return;
-        const prefix =
-          "\u00ABreply:" +
-          target.id +
-          "\u00BB " +
-          String(target.text || "").replace(/\n/g, " ").slice(0, 80);
+        const preview = String(target.text || "").replace(/\n/g, " ").slice(0, 80);
+        const prefix = "\u00ABreply:" + target.id + "\u00BB " + preview;
         if (!input.value.startsWith("\u00ABreply:")) {
           input.value = prefix + "\n" + input.value;
         }
@@ -106,23 +96,43 @@
 
   function enhanceQuotes() {
     document.querySelectorAll("#messages .bubble").forEach((bubble) => {
-      if (bubble.dataset.replyEnhanced) return;
-      const raw = bubble.textContent || "";
-      const m = raw.match(REPLY_RE);
+      const source = bubble.dataset.replyEnhanced
+        ? bubble.dataset.replyRaw || ""
+        : bubble.textContent || "";
+      if (bubble.dataset.replyEnhanced && bubble.querySelector(".reply-quote")) return;
+
+      const m = source.match(REPLY_RE);
       if (!m) return;
+
+      bubble.dataset.replyRaw = source;
       bubble.dataset.replyEnhanced = "1";
-      const quoteText = (m[2] || "").trim() || "Message";
-      const rest = raw.replace(REPLY_RE, "").trim();
+
+      const quoteText = (m[2] || "").trim() || "Original message";
+      const rest = source.replace(REPLY_RE, "").trim();
+
       bubble.innerHTML = "";
+
       const q = document.createElement("div");
       q.className = "reply-quote";
+
       const lab = document.createElement("span");
       lab.className = "reply-quote-label";
-      lab.textContent = "Reply";
+      lab.textContent = "Replying to";
+
+      const qt = document.createElement("span");
+      qt.className = "reply-quote-text";
+      qt.textContent = quoteText;
+
       q.appendChild(lab);
-      q.appendChild(document.createTextNode(quoteText));
+      q.appendChild(qt);
       bubble.appendChild(q);
-      if (rest) bubble.appendChild(document.createTextNode(rest));
+
+      if (rest) {
+        const body = document.createElement("div");
+        body.className = "bubble-body";
+        body.textContent = rest;
+        bubble.appendChild(body);
+      }
     });
   }
 
@@ -130,7 +140,7 @@
     if (!document.querySelector('link[href*="reply-mobile.css"]')) {
       const l = document.createElement("link");
       l.rel = "stylesheet";
-      l.href = "reply-mobile.css?v=1";
+      l.href = "reply-mobile.css?v=2";
       document.head.appendChild(l);
     }
     ensureBar();
@@ -144,7 +154,9 @@
     if (box) {
       new MutationObserver(() => enhanceQuotes()).observe(box, { childList: true, subtree: true });
     }
-    setTimeout(enhanceQuotes, 500);
+    setTimeout(enhanceQuotes, 300);
+    setTimeout(enhanceQuotes, 900);
+    setTimeout(enhanceQuotes, 2000);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
