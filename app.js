@@ -24,7 +24,7 @@
       "brand-boot.js?v=20",
       "motion-messages.js?v=1",
       "msg-actions-fix.js?v=8",
-      "reply-mobile.js?v=2",
+      "reply-mobile.js?v=3",
       "mobile-gestures.js?v=2",
       "chat-scroll-fix.js?v=2",
       "ui-guard.js?v=1",
