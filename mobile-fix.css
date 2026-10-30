@@ -1,0 +1,76 @@
+/* Mobile layout & touch */
+@media (max-width: 720px) {
+  html, body {
+    height: 100% !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  .layout {
+    display: block !important;
+    position: relative !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  .sidebar,
+  .chat-panel {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: 0 !important;
+  }
+  .chat-panel {
+    transform: translateX(100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    z-index: 2 !important;
+    background: var(--k-chat-bg, var(--bg)) !important;
+  }
+  .layout.in-chat .chat-panel { transform: none !important; }
+  .welcome { display: none !important; }
+  .mobile-back { display: grid !important; place-items: center !important; }
+  .mobile-profile-btn { display: grid !important; place-items: center !important; }
+  .me { display: none !important; }
+  .conversation-head {
+    padding-top: max(8px, env(safe-area-inset-top)) !important;
+    min-height: 56px !important;
+  }
+  .sidebar-head {
+    padding-top: max(8px, env(safe-area-inset-top)) !important;
+  }
+  #messages.messages {
+    padding: 8px 0 12px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  #messages .row { padding: 0 10px !important; }
+  #messages .bubble { max-width: min(82%, 100%) !important; }
+  #messages .row.mine .bubble { margin-left: 20px !important; }
+  #messages .row.theirs .bubble { margin-right: 20px !important; }
+  form#messageForm.composer,
+  .composer {
+    padding: 8px 10px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  }
+  #messageInput {
+    font-size: 16px !important;
+    min-height: 42px !important;
+  }
+  .call-dialog {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+  .chat-item {
+    min-height: 64px !important;
+    padding: 10px 12px !important;
+  }
+  .delete-chat-btn {
+    opacity: 0.7 !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+  dialog { max-width: calc(100vw - 24px) !important; }
+}
