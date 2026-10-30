@@ -12,14 +12,14 @@
     s.textContent = code;
     document.head.appendChild(s);
     const scripts = [
-      "keyboard-scroll-fix.js?v=1",
       "fixes.js?v=34",
       "call-overlay.js?v=3",
       "ux-polish.js?v=3",
       "chat-reopen.js?v=1",
       "settings.js?v=2",
-      "ui-v2.js?v=3",
+      "ui-v2.js?v=4",
       "reactions.js?v=2",
+      "msg-actions-fix.js?v=1",
       "call-viewport.js?v=1",
       "motion.js?v=1",
       "brand-boot.js?v=5",
