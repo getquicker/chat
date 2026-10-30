@@ -1,0 +1,132 @@
+/* Noir Violet global style shift */
+body { background: var(--bg); color: var(--text); font-family: var(--font); }
+
+.conversation, .messages-wrap, .messages {
+  background: var(--chat-wallpaper, var(--bg));
+}
+
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--line-soft);
+}
+
+.sidebar-head h1 {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+.chat-item.active {
+  background: var(--primary-soft) !important;
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+
+.bubble {
+  border-radius: 20px !important;
+  box-shadow: var(--shadow-xs);
+}
+
+.row.mine .bubble {
+  background: var(--grad) !important;
+  color: #fff !important;
+  border-bottom-right-radius: 6px !important;
+}
+
+.row.theirs .bubble {
+  background: var(--bubble-in) !important;
+  color: var(--text) !important;
+  border-bottom-left-radius: 6px !important;
+}
+
+.send, .primary, .primary.cta, .auth-card .primary.cta {
+  background: var(--grad) !important;
+  border: none !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(124, 92, 252, 0.35);
+}
+
+.send:hover, .primary:hover, .primary.cta:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 6px 18px rgba(124, 92, 252, 0.4);
+}
+
+.tab.active { color: var(--primary) !important; }
+
+.auth-view {
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -20%, rgba(124, 92, 252, 0.18), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 100%, rgba(192, 132, 252, 0.12), transparent 50%),
+    var(--bg) !important;
+}
+
+.auth-card {
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+}
+
+.auth-card .logo,
+.welcome .logo.big {
+  border-radius: 18px !important;
+  box-shadow: 0 8px 24px rgba(124, 92, 252, 0.35) !important;
+}
+
+.icon-btn:hover, .call-btn:hover {
+  background: var(--primary-soft) !important;
+  color: var(--primary) !important;
+}
+
+.call-controls .primary { background: var(--success) !important; box-shadow: none !important; }
+.call-controls .call-end { background: var(--danger) !important; }
+
+.details-action:hover {
+  background: var(--primary-soft) !important;
+  border-color: var(--primary-muted) !important;
+  color: var(--primary) !important;
+}
+
+#messageInput:focus, .auth-card input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+.msg-act:hover { color: var(--primary) !important; }
+.reaction-chip.mine {
+  background: var(--primary-soft) !important;
+  outline-color: var(--primary-muted) !important;
+}
+
+.scroll-down {
+  background: var(--surface) !important;
+  color: var(--primary) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.avatar {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--line-soft);
+}
+.chat-item.active .avatar {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--primary-muted);
+}
+
+.composer {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+.conversation-head {
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme="dark"] .row.mine .bubble {
+  background: linear-gradient(135deg, #7c5cfc, #9333ea) !important;
+}
+html[data-theme="dark"] .auth-view {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% -10%, rgba(124, 92, 252, 0.25), transparent 50%),
+    radial-gradient(ellipse 40% 30% at 90% 90%, rgba(232, 121, 249, 0.12), transparent 45%),
+    var(--bg) !important;
+}
