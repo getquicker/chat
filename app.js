@@ -18,11 +18,12 @@
       "chat-reopen.js?v=1",
       "settings.js?v=2",
       "ui-v2.js?v=3",
-      "reactions.js?v=2",
+      "reactions.js?v=3",
       "call-viewport.js?v=1",
       "motion.js?v=1",
-      "brand-boot.js?v=6",
-      "motion-messages.js?v=1"
+      "brand-boot.js?v=7",
+      "motion-messages.js?v=1",
+      "msg-actions-fix.js?v=1"
     ];
     for (const src of scripts) {
       await new Promise((resolve) => {
