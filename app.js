@@ -21,7 +21,7 @@
       "reactions.js?v=2",
       "call-viewport.js?v=1",
       "motion.js?v=1",
-      "brand-boot.js?v=2"
+      "brand-boot.js?v=3"
     ];
     for (const src of scripts) {
       await new Promise((resolve) => {
