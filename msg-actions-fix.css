@@ -1,289 +1,202 @@
 /**
- * Kurakani — reply / react / copy layout fix
- * Overrides conflicting absolute/grid rules from chat-fix.css, kurakani.css, polish.css.
- * Load last among stylesheets.
+ * WhatsApp-style message actions & reactions
+ * Toolbar is position:fixed so it is never clipped by #messages overflow.
  */
 
-#messages .row {
-  position: relative !important;
+/* Reactions under bubble, slightly overlapping like WhatsApp */
+#messages .msg-reactions {
+  position: static !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  margin-top: -6px !important;
+  margin-bottom: 2px !important;
+  padding: 0 4px !important;
+  max-width: min(85%, 360px) !important;
+  z-index: 2 !important;
+}
+#messages .msg-reactions:empty { display: none !important; margin: 0 !important; }
+#messages .row.mine .msg-reactions { justify-content: flex-end !important; margin-left: auto !important; }
+#messages .row.theirs .msg-reactions { justify-content: flex-start !important; }
+
+#messages .reaction-chip {
+  font-size: 14px !important;
+  line-height: 1 !important;
+  padding: 4px 8px !important;
+  border-radius: 12px !important;
+  background: var(--k-surface, #1f1f28) !important;
+  border: 1px solid var(--k-border, #333) !important;
+  color: var(--k-text, #fff) !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25) !important;
+}
+#messages .reaction-chip.mine {
+  border-color: var(--k-primary, #6d28d9) !important;
+  background: rgba(109, 40, 217, 0.2) !important;
 }
 
+/* Hide old in-row action pills — replaced by fixed WhatsApp bar */
+#messages .msg-actions {
+  display: none !important;
+}
+
+/* Reply quote inside bubble */
 #messages .bubble {
   display: flex !important;
   flex-direction: column !important;
   gap: 4px !important;
-  position: relative !important;
 }
-
 #messages .reply-preview {
   display: block !important;
   position: static !important;
-  max-width: 100% !important;
-  margin: 0 0 2px 0 !important;
+  margin: 0 !important;
   padding: 6px 8px !important;
-  border-left: 3px solid rgba(255, 255, 255, 0.55) !important;
-  border-radius: 8px !important;
-  background: rgba(0, 0, 0, 0.12) !important;
+  border-left: 3px solid rgba(255,255,255,.5) !important;
+  border-radius: 6px !important;
+  background: rgba(0,0,0,.15) !important;
   font-size: 0.78rem !important;
-  line-height: 1.3 !important;
-  color: inherit !important;
-  opacity: 0.9 !important;
+  opacity: 0.95 !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-  order: -1;
 }
-
 #messages .row.theirs .reply-preview {
   border-left-color: var(--k-primary, #6d28d9) !important;
-  background: rgba(0, 0, 0, 0.06) !important;
+  background: rgba(0,0,0,.08) !important;
 }
-
-html[data-theme="dark"] #messages .row.theirs .reply-preview {
-  background: rgba(255, 255, 255, 0.08) !important;
-}
-
 #messages .bubble-text {
-  display: block;
   white-space: pre-wrap;
-  word-wrap: break-word;
   overflow-wrap: anywhere;
 }
 
-#messages .msg-reactions {
-  position: static !important;
-  bottom: auto !important;
-  left: auto !important;
-  right: auto !important;
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 4px !important;
-  margin-top: 2px !important;
-  max-width: min(78%, 420px) !important;
-  z-index: 1 !important;
-}
-
-#messages .msg-reactions:empty {
-  display: none !important;
-  margin: 0 !important;
-}
-
-#messages .row.mine .msg-reactions {
-  justify-content: flex-end !important;
-}
-
-#messages .row.theirs .msg-reactions {
-  justify-content: flex-start !important;
-}
-
-#messages .reaction-chip {
-  font-size: 13px !important;
-  line-height: 1.2 !important;
-  padding: 3px 8px !important;
-  border-radius: 999px !important;
-  background: var(--k-surface, var(--surface, #fff)) !important;
-  border: 1px solid var(--k-border, var(--border, #e5e7eb)) !important;
-  color: var(--k-text, var(--text, #111)) !important;
-  cursor: pointer !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06) !important;
-  transition: transform 120ms ease, border-color 120ms ease !important;
-}
-
-#messages .reaction-chip:hover {
-  transform: scale(1.06);
-}
-
-#messages .reaction-chip.mine {
-  border-color: var(--k-primary, #6d28d9) !important;
-  background: var(--k-primary-soft, rgba(109, 40, 217, 0.14)) !important;
-}
-
-#messages .msg-actions {
-  position: absolute !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  bottom: auto !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 2px !important;
-  padding: 2px !important;
-  border-radius: 999px !important;
-  background: var(--k-surface, var(--surface, #1a1a22)) !important;
-  border: 1px solid var(--k-border, var(--border, #2a2a32)) !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18) !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  z-index: 6 !important;
-  transition: opacity 140ms ease !important;
-}
-
-#messages .row.mine .msg-actions {
-  right: calc(100% + 6px) !important;
-  left: auto !important;
-}
-
-#messages .row.theirs .msg-actions {
-  left: calc(100% + 6px) !important;
-  right: auto !important;
-}
-
-#messages .row:hover .msg-actions,
-#messages .row:focus-within .msg-actions,
-#messages .row.show-actions .msg-actions,
-#messages .row.actions-open .msg-actions {
-  opacity: 1 !important;
-  pointer-events: auto !important;
-}
-
-#messages .msg-act {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
-  border: none !important;
-  border-radius: 50% !important;
-  background: transparent !important;
-  color: var(--k-text-muted, var(--muted, #9ca3af)) !important;
-  display: grid !important;
-  place-items: center !important;
-  cursor: pointer !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-}
-
-#messages .msg-act:hover {
-  background: var(--k-surface-2, rgba(255, 255, 255, 0.08)) !important;
-  color: var(--k-text, var(--text, #fff)) !important;
-}
-
-#messages .msg-act:focus-visible {
-  outline: 2px solid var(--k-primary, #6d28d9);
-  outline-offset: 1px;
-}
-
-@media (hover: none), (max-width: 640px) {
-  #messages .msg-actions {
-    position: static !important;
-    transform: none !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    margin: 4px 0 0 !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    width: fit-content !important;
-    grid-column: 1 / -1 !important;
-  }
-  #messages .row.mine .msg-actions {
-    margin-left: auto !important;
-    margin-right: 0 !important;
-  }
-  #messages .row.show-actions .msg-actions,
-  #messages .row:focus-within .msg-actions {
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
-}
-
-.reply-bar {
+/* ===== WhatsApp-style floating action bar (fixed, never clipped) ===== */
+.wa-msg-bar {
+  position: fixed;
+  z-index: 1500;
   display: none;
-  align-items: stretch;
-  gap: 0;
-  padding: 0;
-  background: var(--k-surface-2, var(--surface-2, #1e1e24));
-  border-top: 1px solid var(--k-border, var(--border, #2a2a32));
-  flex-shrink: 0;
-}
-
-.reply-bar.active {
-  display: flex;
-}
-
-.reply-bar-accent {
-  width: 3px;
-  flex-shrink: 0;
-  background: var(--k-primary, #6d28d9);
-  border-radius: 0 2px 2px 0;
-}
-
-.reply-bar-body {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 12px;
-  font-size: 0.88rem;
-}
-
-.reply-bar-body strong {
-  display: block;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--k-primary, #6d28d9);
-  margin-bottom: 2px;
-}
-
-.reply-bar-body span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--k-text-muted, var(--muted, #9ca3af));
-}
-
-.reply-bar-close {
-  width: 40px;
-  height: auto;
-  min-height: 40px;
-  border: none;
-  background: transparent;
-  color: var(--k-text-muted, var(--muted, #9ca3af));
-  cursor: pointer;
-  font-size: 16px;
-  flex-shrink: 0;
-}
-
-.reply-bar-close:hover {
-  color: var(--k-text, var(--text, #fff));
-}
-
-.react-picker {
-  position: fixed !important;
-  z-index: 1400 !important;
-  display: none;
+  align-items: center;
   gap: 2px;
-  padding: 6px 8px;
-  background: var(--k-surface, var(--surface, #1a1a22)) !important;
-  border: 1px solid var(--k-border, var(--border, #2a2a32)) !important;
-  border-radius: 999px !important;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35) !important;
+  padding: 4px 6px;
+  border-radius: 24px;
+  background: #233138;
+  box-shadow: 0 4px 20px rgba(0,0,0,.45);
+  border: 1px solid rgba(255,255,255,.08);
+}
+html[data-theme="light"] .wa-msg-bar {
+  background: #fff;
+  border-color: #e5e7eb;
+  box-shadow: 0 4px 18px rgba(0,0,0,.15);
+}
+.wa-msg-bar.open {
+  display: flex;
+  animation: waBarIn 120ms ease-out;
+}
+@keyframes waBarIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wa-msg-bar.open { animation: none; }
 }
 
-.react-picker.open {
-  display: flex !important;
-}
-
-.react-picker button {
-  width: 36px;
-  height: 36px;
+.wa-msg-bar button {
+  width: 40px;
+  height: 40px;
   border: none;
   border-radius: 50%;
   background: transparent;
+  color: #e9edef;
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
   display: grid;
   place-items: center;
-  transition: transform 120ms ease, background 120ms ease;
+  flex-shrink: 0;
+  transition: background 100ms ease, transform 100ms ease;
+}
+html[data-theme="light"] .wa-msg-bar button {
+  color: #111b21;
+}
+.wa-msg-bar button:hover {
+  background: rgba(255,255,255,.1);
+  transform: scale(1.08);
+}
+html[data-theme="light"] .wa-msg-bar button:hover {
+  background: rgba(0,0,0,.06);
+}
+.wa-msg-bar button:active {
+  transform: scale(0.95);
+}
+.wa-msg-bar .wa-sep {
+  width: 1px;
+  height: 24px;
+  background: rgba(255,255,255,.15);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+html[data-theme="light"] .wa-msg-bar .wa-sep {
+  background: rgba(0,0,0,.1);
+}
+.wa-msg-bar .wa-act {
+  font-size: 13px;
+  font-weight: 500;
+  width: auto;
+  min-width: 40px;
+  padding: 0 10px;
+  border-radius: 20px;
+  gap: 4px;
+}
+.wa-msg-bar .wa-act svg {
+  width: 18px;
+  height: 18px;
 }
 
-.react-picker button:hover {
-  background: var(--k-surface-2, rgba(255, 255, 255, 0.08));
-  transform: scale(1.12);
+/* Reply bar above composer — WhatsApp style */
+.reply-bar {
+  display: none;
+  align-items: stretch;
+  background: #1d282f;
+  border-top: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
 }
+html[data-theme="light"] .reply-bar {
+  background: #f0f2f5;
+  border-top-color: #e9edef;
+}
+.reply-bar.active { display: flex; }
+.reply-bar-accent {
+  width: 4px;
+  background: #00a884;
+  flex-shrink: 0;
+}
+.reply-bar-body {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+}
+.reply-bar-body strong {
+  display: block;
+  font-size: 0.8rem;
+  color: #00a884;
+  font-weight: 600;
+}
+.reply-bar-body span {
+  display: block;
+  font-size: 0.85rem;
+  color: #8696a0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reply-bar-close {
+  width: 44px;
+  border: none;
+  background: transparent;
+  color: #8696a0;
+  cursor: pointer;
+  font-size: 18px;
+}
+.reply-bar-close:hover { color: #e9edef; }
 
-.react-picker button:focus-visible {
-  outline: 2px solid var(--k-primary, #6d28d9);
-}
-
-.messages .msg-reactions,
-#messages.messages .msg-reactions {
-  position: static !important;
-}
+/* Hide legacy react-picker (replaced by wa-msg-bar) */
+.react-picker { display: none !important; }
