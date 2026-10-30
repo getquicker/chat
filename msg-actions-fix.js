@@ -15,7 +15,7 @@
     if (document.querySelector('link[href*="msg-actions.css"]')) return;
     const l = document.createElement("link");
     l.rel = "stylesheet";
-    l.href = "msg-actions.css?v=2";
+    l.href = "msg-actions.css?v=3";
     document.head.appendChild(l);
   }
 
@@ -176,7 +176,15 @@
     row.addEventListener("touchmove", () => clearTimeout(timer));
   }
 
+  let enhanceTimer = null;
   function enhanceAll() {
+    if (enhanceTimer) return;
+    enhanceTimer = requestAnimationFrame(() => {
+      enhanceTimer = null;
+      enhanceAllNow();
+    });
+  }
+  function enhanceAllNow() {
     document.querySelectorAll("#messages .row").forEach((row) => {
       if (!row.dataset.msgId) {
         row.dataset.msgId = row.getAttribute("data-id") || ("dom-" + Math.random().toString(36).slice(2, 9));
@@ -222,7 +230,7 @@
     enhanceAll();
     const box = $("messages");
     if (box) {
-      new MutationObserver(() => enhanceAll()).observe(box, { childList: true, subtree: true });
+      new MutationObserver(() => enhanceAll()).observe(box, { childList: true });
     }
     setTimeout(enhanceAll, 500);
     setTimeout(enhanceAll, 1500);
