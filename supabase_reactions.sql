@@ -1,6 +1,10 @@
--- Shared message reactions (run in Supabase SQL editor)
-create table if not exists public.message_reactions (
-  message_id uuid not null references public.messages(id) on delete cascade,
+-- Shared message reactions
+-- messages.id is bigint in this project (not uuid)
+
+drop table if exists public.message_reactions cascade;
+
+create table public.message_reactions (
+  message_id bigint not null references public.messages(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   emoji text not null check (char_length(emoji) between 1 and 16),
   created_at timestamptz not null default now(),

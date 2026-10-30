@@ -1,8 +1,8 @@
 /**
  * Shared message reactions via Supabase message_reactions table.
+ * message_id is bigint in this project.
  */
 (() => {
-  const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
   let db = null;
   let myId = null;
   let channel = null;
@@ -16,6 +16,10 @@
       }
     } catch {}
     return db;
+  }
+
+  function mid(msgId) {
+    return /^\d+$/.test(String(msgId)) ? Number(msgId) : msgId;
   }
 
   async function ensureUser() {
@@ -51,7 +55,7 @@
     const rows = [...document.querySelectorAll("#messages .row")];
     data.forEach((m, i) => {
       if (rows[i]) {
-        rows[i].dataset.msgId = m.id;
+        rows[i].dataset.msgId = String(m.id);
         rows[i].dataset.msgServer = "1";
       }
     });
@@ -85,7 +89,8 @@
     const c = client();
     const ids = [...document.querySelectorAll("#messages .row[data-msg-id]")]
       .map((r) => r.dataset.msgId)
-      .filter((id) => id && !String(id).startsWith("dom-"));
+      .filter((id) => id && !String(id).startsWith("dom-"))
+      .map((id) => mid(id));
     if (!c || !ids.length) return;
     const { data, error } = await c
       .from("message_reactions")
@@ -99,11 +104,12 @@
     serverOk = true;
     const byMsg = {};
     (data || []).forEach((r) => {
-      if (!byMsg[r.message_id]) byMsg[r.message_id] = {};
-      if (!byMsg[r.message_id][r.emoji]) byMsg[r.message_id][r.emoji] = [];
-      byMsg[r.message_id][r.emoji].push(r.user_id);
+      const key = String(r.message_id);
+      if (!byMsg[key]) byMsg[key] = {};
+      if (!byMsg[key][r.emoji]) byMsg[key][r.emoji] = [];
+      byMsg[key][r.emoji].push(r.user_id);
     });
-    Object.keys(byMsg).forEach((mid) => paint(mid, byMsg[mid]));
+    Object.keys(byMsg).forEach((k) => paint(k, byMsg[k]));
   }
 
   async function toggle(msgId, emoji) {
@@ -120,18 +126,20 @@
       return;
     }
 
+    const id = mid(msgId);
+
     const { data: existing } = await c
       .from("message_reactions")
       .select("emoji")
-      .eq("message_id", msgId)
+      .eq("message_id", id)
       .eq("user_id", myId)
       .eq("emoji", emoji)
       .maybeSingle();
 
     if (existing) {
-      await c.from("message_reactions").delete().eq("message_id", msgId).eq("user_id", myId).eq("emoji", emoji);
+      await c.from("message_reactions").delete().eq("message_id", id).eq("user_id", myId).eq("emoji", emoji);
     } else {
-      const { error } = await c.from("message_reactions").insert({ message_id: msgId, user_id: myId, emoji });
+      const { error } = await c.from("message_reactions").insert({ message_id: id, user_id: myId, emoji });
       if (error) {
         serverOk = false;
         console.warn(error);
