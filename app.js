@@ -19,7 +19,8 @@
       "settings.js?v=2",
       "ui-v2.js?v=3",
       "reactions.js?v=2",
-      "call-viewport.js?v=1"
+      "call-viewport.js?v=1",
+      "motion.js?v=1"
     ];
     for (const src of scripts) {
       await new Promise((resolve) => {
