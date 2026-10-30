@@ -15,7 +15,7 @@
     if (document.querySelector('link[href*="msg-actions.css"]')) return;
     const l = document.createElement("link");
     l.rel = "stylesheet";
-    l.href = "msg-actions.css?v=1";
+    l.href = "msg-actions.css?v=2";
     document.head.appendChild(l);
   }
 
@@ -45,6 +45,10 @@
     ensureReplyBar();
     replyTarget = { id: String(msgId), text: String(text || "").slice(0, 120) };
     const bar = $("replyBar");
+    const form = $("messageForm");
+    if (bar && form && form.parentNode && bar.nextElementSibling !== form) {
+      form.parentNode.insertBefore(bar, form);
+    }
     if (!bar) return;
     const label = $("replyBarLabel");
     const txt = $("replyBarText");
@@ -54,7 +58,7 @@
     const input = $("messageInput");
     if (input) {
       input.focus();
-      try { input.click(); } catch {}
+      try { input.click(); } catch (e) {}
     }
   }
 
@@ -148,7 +152,7 @@
       e.stopPropagation();
       const msgId = row.dataset.msgId || row.getAttribute("data-id") || "";
       const bubble = row.querySelector(".bubble");
-      const text = (bubble && bubble.textContent || "").trim();
+      const text = ((bubble && bubble.textContent) || "").trim();
       const action = b.dataset.a;
       if (action === "copy") {
         if (navigator.clipboard && navigator.clipboard.writeText) {
