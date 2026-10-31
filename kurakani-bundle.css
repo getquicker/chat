@@ -2381,3 +2381,747 @@ html[data-theme="dark"] {
 }
 
 /* ===== END msg-actions.css ===== */
+
+/* ===== BEGIN reply-mobile.css ===== */
+/* Premium reply bar (mobile + desktop) */
+#replyBar,
+.reply-bar {
+  display: none !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  position: relative !important;
+  z-index: 30 !important;
+  flex: 0 0 auto !important;
+  background: linear-gradient(180deg, rgba(36, 30, 52, 0.98) 0%, rgba(22, 18, 32, 0.98) 100%) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-top: 1px solid rgba(167, 139, 250, 0.18) !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.22) !important;
+  color: #eee !important;
+}
+#replyBar::before,
+.reply-bar::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 8px !important;
+  bottom: 8px !important;
+  width: 3px !important;
+  border-radius: 0 3px 3px 0 !important;
+  background: linear-gradient(180deg, #a78bfa, #7c5cfc) !important;
+  pointer-events: none !important;
+}
+html[data-theme="light"] #replyBar,
+html[data-theme="light"] .reply-bar {
+  background: linear-gradient(180deg, #faf8fd 0%, #f3f0f9 100%) !important;
+  border-top-color: rgba(109, 40, 217, 0.12) !important;
+  box-shadow: 0 -4px 18px rgba(40, 20, 80, 0.06) !important;
+  color: #1a1228 !important;
+}
+#replyBar.active,
+.reply-bar.active {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  animation: replyBarIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes replyBarIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+#replyBar .reply-bar-body,
+.reply-bar-body {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  overflow: hidden !important;
+  padding-left: 6px !important;
+}
+#replyBarLabel {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  color: #c4b5fd !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.2 !important;
+}
+html[data-theme="light"] #replyBarLabel { color: #6d28d9 !important; }
+#replyBarText {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  color: #a89fb8 !important;
+  font-size: 0.88rem !important;
+  line-height: 1.35 !important;
+  font-weight: 450 !important;
+}
+html[data-theme="light"] #replyBarText { color: #6b6280 !important; }
+#replyBarClose,
+.reply-bar-close {
+  flex: 0 0 34px !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  min-height: 34px !important;
+  border: 1px solid rgba(167, 139, 250, 0.15) !important;
+  border-radius: 50% !important;
+  background: rgba(42, 36, 56, 0.9) !important;
+  color: #c8bfd9 !important;
+  cursor: pointer !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 0.95rem !important;
+  line-height: 1 !important;
+  -webkit-tap-highlight-color: transparent !important;
+  touch-action: manipulation !important;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease !important;
+}
+html[data-theme="light"] #replyBarClose {
+  background: #ebe6f4 !important;
+  border-color: rgba(109, 40, 217, 0.12) !important;
+  color: #5a4d72 !important;
+}
+#replyBarClose:hover {
+  background: rgba(124, 92, 252, 0.3) !important;
+  color: #fff !important;
+}
+#replyBarClose:active {
+  transform: scale(0.92) !important;
+  background: rgba(124, 92, 252, 0.4) !important;
+}
+#replyBar.active + #messageForm.composer,
+#replyBar.active + .composer,
+.reply-bar.active + #messageForm.composer {
+  border-top: none !important;
+  padding-top: 8px !important;
+}
+@media (min-width: 900px) {
+  #replyBar.active,
+  .reply-bar.active {
+    padding-left: max(20px, calc(50% - 400px)) !important;
+    padding-right: max(20px, calc(50% - 400px)) !important;
+  }
+}
+
+#messages .bubble {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+}
+#messages .reply-quote {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 0 0 8px 0 !important;
+  padding: 7px 10px !important;
+  border-left: 3px solid #a78bfa !important;
+  border-radius: 8px !important;
+  background: rgba(0, 0, 0, 0.22) !important;
+  overflow: hidden !important;
+}
+#messages .row.mine .reply-quote {
+  background: rgba(0, 0, 0, 0.2) !important;
+  border-left-color: rgba(255, 255, 255, 0.7) !important;
+}
+#messages .row.theirs .reply-quote {
+  background: rgba(124, 92, 252, 0.12) !important;
+  border-left-color: #8b5cf6 !important;
+}
+html[data-theme="light"] #messages .row.theirs .reply-quote {
+  background: rgba(109, 40, 217, 0.1) !important;
+}
+html[data-theme="light"] #messages .row.mine .reply-quote {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-left-color: rgba(255, 255, 255, 0.85) !important;
+}
+#messages .reply-quote-label {
+  display: block !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  color: #c4b5fd !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+}
+#messages .row.mine .reply-quote-label { color: rgba(255, 255, 255, 0.9) !important; }
+html[data-theme="light"] #messages .row.theirs .reply-quote-label { color: #6d28d9 !important; }
+#messages .reply-quote-text {
+  display: block !important;
+  font-size: 0.8rem !important;
+  line-height: 1.35 !important;
+  color: rgba(255, 255, 255, 0.72) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+#messages .row.theirs .reply-quote-text { color: var(--muted, #9b94ad) !important; }
+#messages .row.mine .reply-quote-text { color: rgba(255, 255, 255, 0.8) !important; }
+html[data-theme="light"] #messages .row.theirs .reply-quote-text { color: #5b4a7a !important; }
+#messages .bubble-body {
+  display: block !important;
+  white-space: pre-wrap !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.45 !important;
+}
+@media (max-width: 720px) {
+  #replyBar,
+  .reply-bar {
+    padding: 11px 14px !important;
+    padding-left: 16px !important;
+  }
+  #replyBarClose,
+  .reply-bar-close {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+    flex-basis: 38px !important;
+  }
+  #messages .reply-quote {
+    padding: 8px 10px !important;
+    margin-bottom: 6px !important;
+    border-radius: 10px !important;
+  }
+  #messages .bubble { max-width: min(85%, 100%) !important; }
+}
+
+/* ===== END reply-mobile.css ===== */
+
+/* ===== BEGIN layout-fix.css ===== */
+/* ALIGNMENT + HOME + BEAUTY */
+.conversation.hidden,
+#conversationPanel.hidden,
+#conversationPanel.conversation.hidden {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+#conversationPanel.conversation:not(.hidden),
+.conversation:not(.hidden) {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+.chat-panel {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+#welcomePanel.welcome {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  z-index: 2 !important;
+  background: var(--k-chat-bg, var(--bg, #0c0a12)) !important;
+}
+#welcomePanel.welcome.hidden { display: none !important; }
+
+#messages.messages {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  padding: 12px 0 20px !important;
+}
+
+#messages .row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-end !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  margin: 3px 0 !important;
+  padding: 0 14px !important;
+  position: relative !important;
+  grid-template-columns: none !important;
+  grid-template-areas: none !important;
+}
+#messages .row:not(.j-prev) { margin-top: 10px !important; }
+#messages .row.j-prev { margin-top: 2px !important; }
+
+/* Incoming LEFT */
+#messages .row.theirs {
+  justify-content: flex-start !important;
+  flex-direction: row !important;
+}
+/* Outgoing RIGHT */
+#messages .row.mine {
+  justify-content: flex-end !important;
+  flex-direction: row !important;
+}
+
+#messages .row .avatar,
+#messages .row .avatar.xs {
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  margin: 0 !important;
+}
+#messages .row .av-gap {
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 1px !important;
+}
+#messages .row.mine > .avatar,
+#messages .row.mine > .av-gap { display: none !important; }
+#messages .row.theirs.j-prev > .avatar { visibility: hidden !important; }
+
+#messages .bubble {
+  display: block !important;
+  flex: 0 1 auto !important;
+  width: fit-content !important;
+  max-width: min(72%, 440px) !important;
+  min-width: 40px !important;
+  padding: 9px 13px !important;
+  border-radius: 18px !important;
+  font-size: 0.95rem !important;
+  line-height: 1.45 !important;
+  white-space: pre-wrap !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+#messages .row.mine .bubble {
+  background: linear-gradient(135deg, #7c5cfc 0%, #6d28d9 100%) !important;
+  color: #fff !important;
+  border-bottom-right-radius: 5px !important;
+  margin-left: 48px !important;
+}
+#messages .row.theirs .bubble {
+  background: var(--k-in, #2a2438) !important;
+  color: var(--text, #e4e6eb) !important;
+  border-bottom-left-radius: 5px !important;
+  margin-right: 48px !important;
+}
+html[data-theme="light"] #messages .row.theirs .bubble {
+  background: #ebe6f4 !important;
+  color: #1a1228 !important;
+}
+
+#messages .msg-reactions {
+  position: absolute !important;
+  bottom: -6px !important;
+  display: flex !important;
+  gap: 4px !important;
+  z-index: 2 !important;
+}
+#messages .row.theirs .msg-reactions { left: 44px !important; right: auto !important; }
+#messages .row.mine .msg-reactions { right: 14px !important; left: auto !important; }
+#messages .msg-reactions:empty { display: none !important; }
+#messages .row:has(.msg-reactions:not(:empty)) { margin-bottom: 14px !important; }
+
+#messages .msg-actions {
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  z-index: 5 !important;
+}
+#messages .row:hover .msg-actions {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+@media (min-width: 900px) {
+  #messages.messages {
+    padding-left: max(12px, calc(50% - 420px)) !important;
+    padding-right: max(12px, calc(50% - 420px)) !important;
+  }
+  #messages .bubble { max-width: min(65%, 460px) !important; }
+}
+@media (max-width: 720px) {
+  #messages .bubble { max-width: min(82%, 100%) !important; }
+  #messages .row { padding: 0 10px !important; }
+  #messages .row.mine .bubble { margin-left: 24px !important; }
+  #messages .row.theirs .bubble { margin-right: 24px !important; }
+}
+
+/* Block select/copy on UI chrome & bubbles (inputs still work) */
+.sidebar,
+.conversation-head,
+.welcome,
+.chat-item,
+.me,
+.call-actions,
+.msg-actions,
+#messages .row,
+#messages .bubble {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+input,
+textarea,
+#messageInput,
+[contenteditable="true"] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+.chat-item { border-radius: 14px !important; transition: background 0.15s ease !important; }
+.chat-item.active {
+  background: rgba(124, 92, 252, 0.18) !important;
+  box-shadow: inset 3px 0 0 #7c5cfc !important;
+}
+#messageInput {
+  border-radius: 24px !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+#messageInput:focus {
+  border-color: #7c5cfc !important;
+  box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.25) !important;
+}
+.send {
+  background: linear-gradient(135deg, #7c5cfc, #6d28d9) !important;
+  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.4) !important;
+  transition: transform 0.12s ease, filter 0.12s !important;
+}
+.send:hover { filter: brightness(1.08); transform: scale(1.04); }
+.send:active { transform: scale(0.96); }
+
+/* ===== END layout-fix.css ===== */
+
+/* ===== BEGIN composer-fix.css ===== */
+/* Composer + send — single source of truth */
+#conversationPanel.conversation:not(.hidden) {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+.messages-wrap {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+#replyBar.reply-bar,
+#replyBar,
+.reply-bar {
+  display: none !important;
+  flex: 0 0 auto !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 14px 4px !important;
+  box-sizing: border-box !important;
+  background: var(--k-composer-bg, #16121f) !important;
+  border-top: 1px solid var(--line-soft, #3a3348) !important;
+  border-left: 3px solid #7c5cfc !important;
+  border-bottom: 0 !important;
+  z-index: 6 !important;
+}
+#replyBar.active,
+.reply-bar.active { display: flex !important; }
+#replyBarClose {
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  height: 28px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: var(--surface-2, #2a2438) !important;
+  color: var(--muted) !important;
+  cursor: pointer !important;
+}
+
+form#messageForm.composer,
+#messageForm.composer,
+form.composer,
+.composer {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)) !important;
+  box-sizing: border-box !important;
+  background: var(--k-composer-bg, #16121f) !important;
+  border-top: 1px solid var(--line-soft, #3a3348) !important;
+  position: relative !important;
+  z-index: 5 !important;
+  overflow: visible !important;
+}
+#replyBar.active + #messageForm.composer,
+.reply-bar.active + form.composer {
+  border-top-color: transparent !important;
+  padding-top: 6px !important;
+}
+
+form#messageForm.composer #messageInput,
+#messageForm #messageInput,
+.composer #messageInput,
+#messageInput {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: 0 !important;
+  max-width: none !important;
+  min-height: 44px !important;
+  max-height: 140px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  border: 1.5px solid var(--line-soft, #3a3348) !important;
+  border-radius: 22px !important;
+  background: var(--surface-2, #1e1a2a) !important;
+  color: var(--text, #eee) !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+  font-family: inherit !important;
+  resize: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  outline: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+html[data-theme="light"] #messageInput {
+  background: #f3f0f8 !important;
+  border-color: #d8d0e6 !important;
+  color: #1a1228 !important;
+}
+#messageInput::placeholder {
+  color: var(--muted, #8b849c) !important;
+  opacity: 1 !important;
+}
+#messageInput:focus {
+  border-color: #7c5cfc !important;
+  box-shadow: 0 0 0 3px rgba(124, 92, 252, 0.2) !important;
+  background: var(--surface, #14101c) !important;
+}
+html[data-theme="light"] #messageInput:focus { background: #fff !important; }
+
+form#messageForm.composer button.send,
+#messageForm button.send,
+.composer button.send,
+button.send[type="submit"],
+button.send {
+  flex: 0 0 44px !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  max-width: 44px !important;
+  max-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: linear-gradient(145deg, #8b5cf6 0%, #6d28d9 100%) !important;
+  color: #ffffff !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  place-content: center !important;
+  align-self: flex-end !important;
+  box-shadow: 0 2px 10px rgba(109, 40, 217, 0.45) !important;
+  cursor: pointer !important;
+  line-height: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease !important;
+}
+form#messageForm.composer button.send svg,
+.composer button.send svg,
+button.send svg {
+  width: 18px !important;
+  height: 18px !important;
+  max-width: 18px !important;
+  max-height: 18px !important;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  fill: currentColor !important;
+  pointer-events: none !important;
+}
+button.send:hover {
+  filter: brightness(1.1) !important;
+  transform: scale(1.06) !important;
+}
+button.send:active { transform: scale(0.94) !important; }
+button.send:disabled {
+  opacity: 0.45 !important;
+  pointer-events: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+button.send:focus-visible {
+  outline: 2px solid #a78bfa !important;
+  outline-offset: 2px !important;
+}
+
+@media (min-width: 900px) {
+  form#messageForm.composer,
+  #messageForm.composer,
+  .composer,
+  #replyBar.active,
+  .reply-bar.active {
+    padding-left: max(16px, calc(50% - 400px)) !important;
+    padding-right: max(16px, calc(50% - 400px)) !important;
+  }
+  #messages.messages {
+    padding-left: max(12px, calc(50% - 400px)) !important;
+    padding-right: max(12px, calc(50% - 400px)) !important;
+  }
+}
+@media (min-width: 1280px) {
+  form#messageForm.composer,
+  .composer,
+  #replyBar.active,
+  .reply-bar.active {
+    padding-left: max(24px, calc(50% - 440px)) !important;
+    padding-right: max(24px, calc(50% - 440px)) !important;
+  }
+}
+@media (max-width: 720px) {
+  form#messageForm.composer,
+  .composer {
+    gap: 8px !important;
+    padding: 8px 10px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+  #messageInput {
+    min-height: 42px !important;
+    height: 42px !important;
+    font-size: 16px !important;
+    padding: 9px 12px !important;
+    border-radius: 20px !important;
+  }
+  button.send,
+  .composer button.send {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
+    max-width: 42px !important;
+    max-height: 42px !important;
+    flex-basis: 42px !important;
+  }
+}
+
+/* ===== END composer-fix.css ===== */
+
+/* ===== BEGIN mobile-fix.css ===== */
+/* Mobile layout & touch */
+@media (max-width: 720px) {
+  html, body {
+    height: 100% !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  .layout {
+    display: block !important;
+    position: relative !important;
+    height: 100% !important;
+    height: 100dvh !important;
+    overflow: hidden !important;
+  }
+  .sidebar,
+  .chat-panel {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border: 0 !important;
+  }
+  .chat-panel {
+    transform: translateX(100%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    z-index: 2 !important;
+    background: var(--k-chat-bg, var(--bg)) !important;
+  }
+  .layout.in-chat .chat-panel { transform: none !important; }
+  .welcome { display: none !important; }
+  .mobile-back { display: grid !important; place-items: center !important; }
+  .mobile-profile-btn { display: grid !important; place-items: center !important; }
+  .me { display: none !important; }
+  .conversation-head {
+    padding-top: max(8px, env(safe-area-inset-top)) !important;
+    min-height: 56px !important;
+  }
+  .sidebar-head {
+    padding-top: max(8px, env(safe-area-inset-top)) !important;
+  }
+  #messages.messages {
+    padding: 8px 0 12px !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  #messages .row { padding: 0 10px !important; }
+  #messages .bubble { max-width: min(82%, 100%) !important; }
+  #messages .row.mine .bubble { margin-left: 20px !important; }
+  #messages .row.theirs .bubble { margin-right: 20px !important; }
+  form#messageForm.composer,
+  .composer {
+    padding: 8px 10px !important;
+    padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  }
+  #messageInput {
+    font-size: 16px !important;
+    min-height: 42px !important;
+  }
+  .call-dialog {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+  .chat-item {
+    min-height: 64px !important;
+    padding: 10px 12px !important;
+  }
+  .delete-chat-btn {
+    opacity: 0.7 !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+  dialog { max-width: calc(100vw - 24px) !important; }
+}
+
+/* ===== END mobile-fix.css ===== */
