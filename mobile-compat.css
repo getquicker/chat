@@ -1,0 +1,54 @@
+/* Final mobile compatibility overrides — loaded last intentionally. */
+html, body {
+  height: var(--app-viewport-height, 100dvh) !important;
+  min-height: 0 !important;
+  max-width: 100%;
+}
+body { width: 100%; }
+#appView.app,
+#layout.layout {
+  height: var(--app-viewport-height, 100dvh) !important;
+  min-height: 0 !important;
+  max-height: var(--app-viewport-height, 100dvh) !important;
+}
+@media (max-width: 720px) {
+  #layout.layout { width: 100%; overflow: hidden !important; }
+  #sidebar.sidebar, .chat-panel {
+    height: var(--app-viewport-height, 100dvh) !important;
+    min-height: 0 !important;
+    max-height: var(--app-viewport-height, 100dvh) !important;
+  }
+  .sidebar { display: flex !important; flex-direction: column !important; }
+  .chat-list { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+  .conversation { min-height: 0 !important; }
+  .messages-wrap { min-height: 0 !important; flex: 1 1 auto !important; }
+  #messages.messages { min-height: 0 !important; overflow-y: auto !important; overscroll-behavior: contain; }
+  #messageForm.composer { flex: 0 0 auto !important; }
+  .conversation-head { gap: 5px !important; padding-left: 6px !important; padding-right: 6px !important; }
+  .conversation-head .avatar { width: 36px !important; height: 36px !important; }
+  .conversation-meta { min-width: 0 !important; }
+  .conversation-meta h2 { font-size: 14px !important; }
+  .call-actions { gap: 0 !important; }
+  .call-actions .icon-btn { width: 36px !important; height: 40px !important; min-width: 34px !important; }
+  .call-actions .icon-btn svg { width: 19px !important; height: 19px !important; }
+  .mobile-back { width: 34px !important; min-width: 34px !important; }
+  .sidebar-head { gap: 5px !important; padding-left: 10px !important; padding-right: 8px !important; }
+  .sidebar-head h1 { font-size: 1.15rem !important; }
+  .sidebar-actions { gap: 0 !important; }
+  .sidebar-actions .icon-btn { width: 38px !important; min-width: 38px !important; }
+  dialog:not(.call-dialog) { max-width: 100vw !important; }
+}
+@media (max-width: 360px) {
+  .conversation-head { gap: 2px !important; }
+  .conversation-head .avatar { width: 32px !important; height: 32px !important; }
+  .conversation-meta h2 { font-size: 13px !important; }
+  .call-actions .icon-btn { width: 32px !important; min-width: 30px !important; }
+  .call-actions .icon-btn svg { width: 17px !important; height: 17px !important; }
+  .sidebar-actions .icon-btn { width: 34px !important; min-width: 34px !important; }
+}
+@media (max-height: 480px) and (max-width: 900px) {
+  .conversation-head { min-height: 48px !important; }
+  .conversation-head .avatar { width: 32px !important; height: 32px !important; }
+  .composer { padding-top: 5px !important; padding-bottom: max(5px, env(safe-area-inset-bottom)) !important; }
+  #messageInput { min-height: 38px !important; height: 38px !important; }
+}
