@@ -2380,6 +2380,15 @@ html[data-theme="dark"] {
   background: rgba(124, 92, 252, 0.2) !important;
 }
 
+/* WhatsApp-inspired reaction picker and compact reaction chips */
+#reactPicker.open{align-items:center;max-width:min(360px,calc(100vw - 24px));overflow-x:auto;overscroll-behavior:contain;}
+#reactPicker button{flex:0 0 auto;transition:transform .12s ease,background .12s ease;}
+#reactPicker button:focus-visible{outline:2px solid #25d366;outline-offset:1px;}
+#messages .reaction-chip{min-height:25px;display:inline-flex;align-items:center;justify-content:center;gap:4px;transition:transform .12s ease,border-color .12s ease,background .12s ease;}
+#messages .reaction-chip:hover{transform:translateY(-1px);}
+#messages .reaction-chip.mine{border-color:#25d366!important;background:rgba(37,211,102,.14)!important;}
+@media(prefers-reduced-motion:reduce){#reactPicker button,#messages .reaction-chip{transition:none!important;}}
+
 /* ===== END msg-actions.css ===== */
 
 /* ===== BEGIN reply-mobile.css ===== */
