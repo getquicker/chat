@@ -1,4 +1,4 @@
-const CACHE_NAME = "kurakani-shell-v8";
+const CACHE_NAME = "kurakani-shell-v9";
 const APP_SHELL = [
   "/chat/",
   "/chat/index.html",
