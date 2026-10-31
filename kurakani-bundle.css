@@ -3602,6 +3602,14 @@ html[data-theme="light"] #msgSheet .sheet-cancel {
   outline-offset: 2px;
 }
 
+/* Single mobile reaction surface: use the message sheet, never the desktop popover. */
+@media (hover: none), (max-width: 720px) {
+  body #reactPicker { display: none !important; visibility: hidden !important; pointer-events: none !important; }
+  body #msgSheet { box-sizing: border-box; width: 100%; max-width: 100vw; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  body #msgSheet .sheet-reactions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+  body #msgSheet .sheet-reactions button { min-width: 0; width: 100%; height: clamp(44px, 12vw, 52px); padding: 0; font-size: clamp(22px, 6vw, 27px); }
+}
+
 /* ===== END mobile-gestures.css ===== */
 
 /* ===== BEGIN desktop-popups.css ===== */
