@@ -14,7 +14,7 @@
     style.id = BADGE_STYLE_ID;
     style.textContent = `
       .${BADGE_CLASS} { display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; margin-inline-start:4px; vertical-align:-1px; flex:0 0 13px; line-height:0; pointer-events:none; border-radius:50%; overflow:visible; }
-      .${BADGE_CLASS} svg { display:block; width:13px; height:13px; flex:0 0 13px; }
+      .${BADGE_CLASS} svg { display:block; width:13px; height:13px; flex:0 0 13px; }\n      .chat-name, #conversationName, #detailsName, #myDisplay, .peer-name, .contact-name, .profile-name, .display-name, .username { display:inline-flex; align-items:center; min-width:0; }
       @media(max-width:480px) { .${BADGE_CLASS} { width:12px; height:12px; flex-basis:12px; margin-inline-start:3px; } .${BADGE_CLASS} svg { width:12px; height:12px; flex-basis:12px; } }
       @media(prefers-reduced-motion:no-preference) { .${BADGE_CLASS} { animation:sc-vtick-in 180ms ease-out both; } @keyframes sc-vtick-in { from { opacity:.65; transform:scale(.88); } to { opacity:1; transform:scale(1); } } }
     `;
@@ -169,6 +169,29 @@
       frame = requestAnimationFrame(() => { frame = 0; applyAll(); });
     });
     observer.observe(root, { childList: true, subtree: true });
+    // Keep a dedicated observer on the chat list: it may be rendered or replaced
+    // independently of the main layout, especially after realtime updates on mobile.
+    let listObserver = null;
+    let observedList = null;
+    const observeChatList = () => {
+      const list = document.getElementById("chatList");
+      if (!list || list === observedList) return;
+      if (listObserver) listObserver.disconnect();
+      observedList = list;
+      listObserver = new MutationObserver(() => {
+        if (frame) cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => { frame = 0; applyChatList(); });
+      });
+      listObserver.observe(list, { childList: true, subtree: true, characterData: true });
+      applyChatList();
+    };
+    observeChatList();
+    const listPoll = setInterval(observeChatList, 1500);
+    window.addEventListener("pagehide", () => {
+      observer.disconnect();
+      if (listObserver) listObserver.disconnect();
+      clearInterval(listPoll);
+    }, { once: true });
     document.querySelectorAll("dialog").forEach(dialog => observer.observe(dialog, { childList: true, subtree: true }));
     [500, 1500, 3500].forEach(delay => setTimeout(() => { refresh(true); applyAll(); }, delay));
     document.addEventListener("visibilitychange", () => {
