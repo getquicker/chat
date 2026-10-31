@@ -41,7 +41,7 @@
     document.head.appendChild(s);
     await new Promise((resolve, reject) => {
       const el = document.createElement('script');
-      el.src = 'app-modules.js?v=5';
+      el.src = 'app-modules.js?v=6';
       el.onload = resolve;
       el.onerror = () => reject(new Error('The application modules failed to load. Please refresh the page or check your connection.'));
       document.head.appendChild(el);
