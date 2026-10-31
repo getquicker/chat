@@ -1,0 +1,61 @@
+name: Validate Kurakani assets
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          set -e
+          for file in *.js; do
+            echo "Checking $file"
+            node --check "$file"
+          done
+      - name: Check compressed application core
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const zlib = require('node:zlib');
+          const parts = ['n0.txt', 'n1.txt', 'n2.txt', 'n3.txt', 'n4.txt'];
+          const encoded = parts.map((file) => fs.readFileSync(file, 'utf8').trim()).join('');
+          const source = zlib.gunzipSync(Buffer.from(encoded, 'base64')).toString('utf8');
+          new Function(source);
+          console.log('Compressed application core syntax is valid.');
+          NODE
+      - name: Check local asset references
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const html = fs.readFileSync('index.html', 'utf8');
+          const refs = [
+            ...[...html.matchAll(/<link\\b[^>]*\\bhref=["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]),
+            ...[...html.matchAll(/<script\\b[^>]*\\bsrc=["']([^"']+)["'][^>]*>/gi)].map((m) => m[1])
+          ];
+          const missing = [];
+          for (const ref of refs) {
+            if (/^(?:https?:)?\\/\\//i.test(ref) || ref.startsWith('data:')) continue;
+            const path = decodeURIComponent(ref.split(/[?#]/, 1)[0]);
+            if (path && !fs.existsSync(path)) missing.push(path);
+          }
+          if (!fs.existsSync('app-modules.js')) missing.push('app-modules.js (dynamic app module bundle)');
+          if (!fs.existsSync('kurakani-bundle.css')) missing.push('kurakani-bundle.css (consolidated stylesheet)');
+          if (missing.length) {
+            console.error('Missing local assets:', [...new Set(missing)].join(', '));
+            process.exit(1);
+          }
+          console.log('All local index assets exist.');
+          NODE
