@@ -3037,3 +3037,420 @@
 })();
 
 /* ===== END name-validation.js ===== */
+
+/* ===== BEGIN verified-badge.js ===== */
+(() => {
+  "use strict";
+  const byUser = new Set();
+  const byName = new Set();
+  let lastFetch = 0;
+  let applying = false;
+  let refreshInFlight = null;
+  const BADGE_CLASS = "sc-vtick";
+  const BADGE_STYLE_ID = "sc-vtick-css";
+
+  function ensureCss() {
+    if (document.getElementById(BADGE_STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = BADGE_STYLE_ID;
+    style.textContent = `
+      .${BADGE_CLASS} { display:inline-flex; align-items:center; justify-content:center; width:13px; height:13px; margin-inline-start:4px; vertical-align:-1px; flex:0 0 13px; line-height:0; pointer-events:none; border-radius:50%; overflow:visible; }
+      .${BADGE_CLASS} svg { display:block; width:13px; height:13px; flex:0 0 13px; }\n      .chat-name, #conversationName, #detailsName, #myDisplay, .peer-name, .contact-name, .profile-name, .display-name, .username { display:inline-flex; align-items:center; min-width:0; }
+      @media(max-width:480px) { .${BADGE_CLASS} { width:12px; height:12px; flex-basis:12px; margin-inline-start:3px; } .${BADGE_CLASS} svg { width:12px; height:12px; flex-basis:12px; } }
+      @media(prefers-reduced-motion:no-preference) { .${BADGE_CLASS} { animation:sc-vtick-in 180ms ease-out both; } @keyframes sc-vtick-in { from { opacity:.65; transform:scale(.88); } to { opacity:1; transform:scale(1); } } }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function getClient() {
+    if (window.__sc && window.__sc.supabase) return window.__sc.supabase;
+    if (window.supabaseClient) return window.supabaseClient;
+    if (window.sb) return window.sb;
+    if (window.supabase && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+      try { return window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY); } catch (_) {}
+    }
+    return null;
+  }
+
+  function normalize(value) { return String(value || "").replace(/^@/, "").trim().toLowerCase(); }
+
+  async function refresh(force) {
+    if (!force && Date.now() - lastFetch < 15000 && (byUser.size || byName.size)) return;
+    if (refreshInFlight) return refreshInFlight;
+    refreshInFlight = (async () => {
+      lastFetch = Date.now();
+      const sb = getClient();
+      if (!sb) return;
+      try {
+        let rows = [];
+        const rpc = await sb.rpc("list_verified_usernames");
+        if (!rpc.error && Array.isArray(rpc.data) && rpc.data.length) {
+          rows = rpc.data.map(row => typeof row === "string" ? { username: row } : (row || {}));
+        } else {
+          const result = await sb.from("profiles").select("username, display_name, is_verified").eq("is_verified", true);
+          if (result.error) { console.warn("[verified badge]", result.error.message); return; }
+          rows = result.data || [];
+        }
+        const usernames = new Set();
+        const names = new Set();
+        rows.forEach(profile => {
+          const username = normalize(profile.username);
+          const displayName = normalize(profile.display_name);
+          if (username) usernames.add(username);
+          if (displayName) names.add(displayName);
+        });
+        if (usernames.size && !names.size) {
+          try {
+            const result = await sb.from("profiles").select("username, display_name").in("username", [...usernames]);
+            (result.data || []).forEach(profile => { const name = normalize(profile.display_name); if (name) names.add(name); });
+          } catch (_) {}
+        }
+        byUser.clear(); byName.clear();
+        usernames.forEach(value => byUser.add(value));
+        names.forEach(value => byName.add(value));
+        applyAll();
+      } catch (error) { console.warn("[verified badge]", error); }
+    })().finally(() => { refreshInFlight = null; });
+    return refreshInFlight;
+  }
+
+  function cleanText(element) {
+    if (!element) return "";
+    const clone = element.cloneNode(true);
+    clone.querySelectorAll(".sc-vtick, .sc-meta-tick-host, .sc-meta-tick, .sc-verified").forEach(node => node.remove());
+    return normalize(clone.textContent);
+  }
+
+  function isVerified(value) {
+    const key = normalize(value);
+    return !!key && (byUser.has(key) || byName.has(key));
+  }
+
+  function placeTick(element) {
+    if (!element || element.querySelector(":scope > .sc-vtick")) return;
+    const badge = document.createElement("span");
+    badge.className = BADGE_CLASS;
+    badge.setAttribute("role", "img");
+    badge.setAttribute("aria-label", "Verified account");
+    badge.title = "Verified account";
+    badge.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="8" cy="8" r="7.5" fill="#1688F8"/><path d="M4.25 8.15 6.65 10.45 11.75 5.65" fill="none" stroke="#fff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    element.appendChild(badge);
+  }
+
+  function clearTick(element) {
+    if (element) element.querySelectorAll(":scope > .sc-vtick").forEach(node => node.remove());
+  }
+
+  function mark(element, usernameOrName) {
+    if (!element) return;
+    if (isVerified(usernameOrName) || isVerified(cleanText(element))) placeTick(element);
+    else clearTick(element);
+  }
+
+  function applyChatList() {
+    const list = document.getElementById("chatList");
+    if (!list) return;
+    list.querySelectorAll(".chat-item").forEach(item => {
+      const nameElement = item.querySelector(".chat-name");
+      if (!nameElement) return;
+      const username = item.getAttribute("data-username") || item.querySelector("[data-username]")?.getAttribute("data-username") || "";
+      mark(nameElement, username);
+    });
+  }
+
+  function applyUserResults() {
+    const box = document.getElementById("userResults");
+    if (!box) return;
+    box.querySelectorAll("[data-username], .user-row, button, li, .result").forEach(row => {
+      const username = row.getAttribute("data-username") || row.querySelector("[data-username]")?.getAttribute("data-username") || "";
+      const nameElement = row.querySelector(".name, .display-name, .chat-name, strong");
+      if (nameElement) mark(nameElement, username);
+      else if (username && isVerified(username)) placeTick(row);
+    });
+  }
+
+  function applyAll() {
+    if (applying) return;
+    applying = true;
+    try {
+      if (!byUser.size && !byName.size) return;
+      const myUsername = document.getElementById("myName");
+      const myDisplay = document.getElementById("myDisplay");
+      // The verified badge belongs beside the display name only, never beside the username.
+      if (myDisplay) mark(myDisplay, myUsername ? cleanText(myUsername) : cleanText(myDisplay));
+      const detailsUsername = document.getElementById("detailsUsername");
+      const detailsName = document.getElementById("detailsName");
+      const conversationName = document.getElementById("conversationName");
+      if (detailsName) {
+        const username = detailsUsername ? cleanText(detailsUsername) : (detailsName.dataset.username || cleanText(detailsName));
+        mark(detailsName, username);
+      }
+      if (conversationName) {
+        const username = conversationName.dataset.username ||
+          (detailsUsername ? cleanText(detailsUsername) : cleanText(conversationName));
+        mark(conversationName, username);
+      }
+      // Only visible display-name elements get a badge. Username labels are intentionally excluded.
+      document.querySelectorAll(".chat-name, .peer-name, .contact-name, .profile-name, .display-name").forEach(element => {
+        mark(element, element.dataset.username || "");
+      });
+      applyChatList();
+      applyUserResults();
+      document.querySelectorAll("#chatTitle").forEach(element => mark(element, element.dataset.username || cleanText(element)));
+    } finally { applying = false; }
+  }
+
+  window.__scRefreshVerified = () => { lastFetch = 0; return refresh(true); };
+  window.__scIsVerified = isVerified;
+
+  function boot() {
+    ensureCss();
+    refresh(true);
+    setInterval(() => refresh(false), 15000);
+    const root = document.getElementById("layout") || document.body;
+    let frame = 0;
+    const observer = new MutationObserver(() => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => { frame = 0; applyAll(); });
+    });
+    observer.observe(root, { childList: true, subtree: true });
+    // Keep a dedicated observer on the chat list: it may be rendered or replaced
+    // independently of the main layout, especially after realtime updates on mobile.
+    let listObserver = null;
+    let observedList = null;
+    const observeChatList = () => {
+      const list = document.getElementById("chatList");
+      if (!list || list === observedList) return;
+      if (listObserver) listObserver.disconnect();
+      observedList = list;
+      listObserver = new MutationObserver(() => {
+        if (frame) cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => { frame = 0; applyChatList(); });
+      });
+      listObserver.observe(list, { childList: true, subtree: true, characterData: true });
+      applyChatList();
+    };
+    observeChatList();
+    const listPoll = setInterval(observeChatList, 1500);
+    window.addEventListener("pagehide", () => {
+      observer.disconnect();
+      if (listObserver) listObserver.disconnect();
+      clearInterval(listPoll);
+    }, { once: true });
+    document.querySelectorAll("dialog").forEach(dialog => observer.observe(dialog, { childList: true, subtree: true }));
+    [500, 1500, 3500].forEach(delay => setTimeout(() => { refresh(true); applyAll(); }, delay));
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) { refresh(true); applyAll(); }
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
+  else boot();
+})();
+
+/* ===== END verified-badge.js ===== */
+
+/* ===== BEGIN sw-update.js ===== */
+(() => {
+  if (!("serviceWorker" in navigator)) return;
+
+  async function update() {
+    try {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const reg of regs) {
+        try {
+          await reg.update();
+          if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        } catch (e) {}
+      }
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshing) return;
+        refreshing = true;
+        if (sessionStorage.getItem("sc_sw_reload") === "1") {
+          sessionStorage.removeItem("sc_sw_reload");
+          location.reload();
+        }
+      });
+    } catch (e) {}
+  }
+
+  navigator.serviceWorker
+    .register("./sw.js?v=11", { scope: "./" })
+    .then((reg) => {
+      reg.update().catch(() => {});
+      if (reg.waiting) {
+        sessionStorage.setItem("sc_sw_reload", "1");
+        reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      }
+      reg.addEventListener("updatefound", () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener("statechange", () => {
+          if (nw.state === "installed" && navigator.serviceWorker.controller) {
+            sessionStorage.setItem("sc_sw_reload", "1");
+            nw.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
+      });
+    })
+    .catch(() => {});
+
+  update();
+  setInterval(update, 60 * 1000);
+})();
+
+/* ===== END sw-update.js ===== */
+
+/* ===== BEGIN composer-fix.js ===== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  function placeReplyBar() {
+    const form = $("messageForm");
+    const bar = $("replyBar");
+    if (!form || !bar || !form.parentNode) return;
+    if (bar.nextElementSibling !== form) form.parentNode.insertBefore(bar, form);
+  }
+
+  function bindComposer() {
+    const form = $("messageForm");
+    const input = $("messageInput");
+    const send = form && form.querySelector("button.send, button[type='submit']");
+    if (!form || !input) return;
+    if (form.dataset.composerBound) return;
+    form.dataset.composerBound = "1";
+
+    const BASE = window.matchMedia("(max-width: 720px)").matches ? 42 : 44;
+
+    const grow = () => {
+      input.style.height = "auto";
+      const h = Math.min(Math.max(input.scrollHeight, BASE), 140);
+      input.style.height = h + "px";
+    };
+
+    const syncSend = () => {
+      if (!send) return;
+      const empty = !input.value.trim();
+      send.disabled = empty;
+      send.setAttribute("aria-disabled", empty ? "true" : "false");
+    };
+
+    input.addEventListener("input", () => {
+      grow();
+      syncSend();
+    });
+    input.addEventListener("focus", grow);
+    input.addEventListener("blur", grow);
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+        if (window.matchMedia("(min-width: 721px)").matches) {
+          e.preventDefault();
+          if (input.value.trim()) {
+            if (typeof form.requestSubmit === "function") form.requestSubmit();
+            else form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+          }
+        }
+      }
+    });
+
+    form.addEventListener(
+      "submit",
+      () => {
+        setTimeout(() => {
+          input.style.height = BASE + "px";
+          syncSend();
+        }, 0);
+      },
+      true
+    );
+
+    if (send) {
+      send.type = "submit";
+      send.classList.add("send");
+      const svg = send.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("width", "18");
+        svg.setAttribute("height", "18");
+        svg.style.display = "block";
+      }
+    }
+
+    grow();
+    syncSend();
+  }
+
+  function boot() {
+    placeReplyBar();
+    bindComposer();
+    setTimeout(() => {
+      placeReplyBar();
+      bindComposer();
+    }, 400);
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();
+
+/* ===== END composer-fix.js ===== */
+
+/* ===== BEGIN mobile-runtime.js ===== */
+/* Mobile viewport and keyboard compatibility for Kurakani. */
+(() => {
+  const root = document.documentElement;
+  let frame = 0;
+  let messagesPinnedToBottom = true;
+  let watchedMessages = null;
+
+  function trackMessages() {
+    const messages = document.getElementById("messages");
+    if (!messages || messages === watchedMessages) return;
+    watchedMessages = messages;
+    const updatePinnedState = () => {
+      messagesPinnedToBottom =
+        messages.scrollHeight - messages.clientHeight - messages.scrollTop <= 64;
+    };
+    messages.addEventListener("scroll", updatePinnedState, { passive: true });
+    updatePinnedState();
+  }
+
+  function syncViewport() {
+    if (frame) cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const vv = window.visualViewport;
+      const height = vv && vv.height ? vv.height : window.innerHeight;
+      if (height > 0) root.style.setProperty("--app-viewport-height", Math.round(height) + "px");
+      root.style.setProperty("--app-viewport-width", Math.round(window.innerWidth) + "px");
+      root.classList.toggle("keyboard-open", !!(document.activeElement && /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName) && vv && window.innerHeight - vv.height > 120));
+      trackMessages();
+      const messages = watchedMessages;
+      // Keyboard/viewport changes must not pull someone away from older messages.
+      // Follow the latest message only when the reader was already at the bottom.
+      if (
+        messages &&
+        messagesPinnedToBottom &&
+        document.activeElement &&
+        document.activeElement.id === "messageInput"
+      ) {
+        messages.scrollTo({ top: messages.scrollHeight, behavior: "auto" });
+      }
+    });
+  }
+  syncViewport();
+  window.addEventListener("resize", syncViewport, {passive:true});
+  window.addEventListener("orientationchange", () => setTimeout(syncViewport, 120), {passive:true});
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", syncViewport, {passive:true});
+    window.visualViewport.addEventListener("scroll", syncViewport, {passive:true});
+  }
+  document.addEventListener("focusin", event => {
+    if (event.target && /^(INPUT|TEXTAREA)$/.test(event.target.tagName)) setTimeout(syncViewport, 80);
+  });
+  document.addEventListener("focusout", () => setTimeout(syncViewport, 120));
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(syncViewport, 100); });
+})();
+
+/* ===== END mobile-runtime.js ===== */
