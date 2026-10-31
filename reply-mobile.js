@@ -1,6 +1,6 @@
 (() => {
   const $ = (id) => document.getElementById(id);
-  const REPLY_RE = /\u00ABreply:([^\u00BB]*)\u00BB\s*([^\n]*)(?:\n|$)/;
+  const REPLY_RE = /(?:«|‹|<)reply:([^»›>]*)(?:»|›|>)\s*([^\n]*)(?:\n|$)/i;
 
   function ensureBar() {
     let bar = $("replyBar");
@@ -95,12 +95,18 @@
   }
 
   function enhanceQuotes() {
-    document.querySelectorAll("#messages .bubble").forEach((bubble) => {
+    const root = $("messages");
+    if (!root) return;
+
+    // The app has used more than one message markup over time. Find the visible
+    // message bubble inside each row rather than relying on one exact class path.
+    const candidates = root.querySelectorAll(".bubble, .message-bubble, [data-message-content]");
+    candidates.forEach((bubble) => {
+      if (bubble.dataset.replyEnhanced && bubble.querySelector(".reply-quote")) return;
+
       const source = bubble.dataset.replyEnhanced
         ? bubble.dataset.replyRaw || ""
         : bubble.textContent || "";
-      if (bubble.dataset.replyEnhanced && bubble.querySelector(".reply-quote")) return;
-
       const m = source.match(REPLY_RE);
       if (!m) return;
 
@@ -109,22 +115,20 @@
 
       const quoteText = (m[2] || "").trim() || "Original message";
       const rest = source.replace(REPLY_RE, "").trim();
-
-      bubble.innerHTML = "";
+      bubble.replaceChildren();
 
       const q = document.createElement("div");
       q.className = "reply-quote";
 
       const lab = document.createElement("span");
       lab.className = "reply-quote-label";
-      lab.textContent = "Replying to";
+      lab.textContent = "Reply to message";
 
       const qt = document.createElement("span");
       qt.className = "reply-quote-text";
       qt.textContent = quoteText;
 
-      q.appendChild(lab);
-      q.appendChild(qt);
+      q.append(lab, qt);
       bubble.appendChild(q);
 
       if (rest) {
@@ -132,6 +136,25 @@
         body.className = "bubble-body";
         body.textContent = rest;
         bubble.appendChild(body);
+      }
+    });
+
+    // Fallback for legacy rows where the message body isn't marked .bubble.
+    // Remove only the internal reply token, never the user's actual message text.
+    root.querySelectorAll(".row").forEach((row) => {
+      if (row.querySelector(".reply-quote")) return;
+      const walker = document.createTreeWalker(row, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      for (const node of nodes) {
+        const match = (node.nodeValue || "").match(/^\s*(?:«|‹|<)reply:([^»›>]*)(?:»|›|>)\s*/i);
+        if (!match) continue;
+        node.nodeValue = node.nodeValue.replace(/^\s*(?:«|‹|<)reply:[^»›>]*(?:»|›|>)\s*/i, "");
+        const quote = document.createElement("span");
+        quote.className = "reply-quote reply-quote-fallback";
+        quote.textContent = match[1] ? "Reply to message " + match[1] : "Reply to message";
+        node.parentNode && node.parentNode.insertBefore(quote, node);
+        break;
       }
     });
   }
