@@ -2406,6 +2406,13 @@ html[data-theme="dark"] {
 }
 @media(prefers-reduced-motion:reduce){#messages .reaction-chip{transition:none!important;}}
 
+/* Compact, right-aligned, lighter message timestamps */
+#messages .bubble .message-meta{width:100%;box-sizing:border-box;justify-content:flex-end!important;margin:2px 0 0!important;padding:0 1px 0 12px;min-height:10px;}
+#messages .bubble .message-time{margin-left:auto;text-align:right;font-size:9px!important;line-height:1.05;font-weight:400!important;letter-spacing:0;opacity:.62!important;}
+#messages .row.mine .bubble .message-time{color:rgba(255,255,255,.68)!important;}
+#messages .row.theirs .bubble .message-time{color:var(--muted,#65676b)!important;opacity:.68!important;}
+@media(max-width:720px){#messages .bubble .message-time{font-size:8.5px!important;opacity:.62!important;}}
+
 /* ===== END msg-actions.css ===== */
 
 /* ===== BEGIN reply-mobile.css ===== */
