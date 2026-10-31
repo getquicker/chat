@@ -20,8 +20,8 @@ const cssFiles = [
   "mobile-fix.css",
   "extra.css",
   "mobile-compat.css",
-  "mobile-gestures.css",
-  "desktop-popups.css"
+  "desktop-popups.css",
+  "mobile-gestures.css"
 ];
 
 const jsFiles = [
