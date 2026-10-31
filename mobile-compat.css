@@ -52,3 +52,9 @@ body { width: 100%; }
   .composer { padding-top: 5px !important; padding-bottom: max(5px, env(safe-area-inset-bottom)) !important; }
   #messageInput { min-height: 38px !important; height: 38px !important; }
 }
+
+
+/* Consistent, lightweight interaction motion. */
+button,.icon-btn,.chat-item,.settings-item,a{ -webkit-tap-highlight-color:transparent; }
+button,.icon-btn,.chat-item,.settings-item{ transition:background-color .16s ease,border-color .16s ease,color .16s ease,opacity .16s ease,transform .18s ease,box-shadow .18s ease; }
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}}
