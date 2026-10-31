@@ -43,7 +43,7 @@
       'fixes.js?v=35','call-overlay.js?v=3','ux-polish.js?v=3','chat-reopen.js?v=1',
       'settings.js?v=2','ui-v2.js?v=3','reactions.js?v=3','call-viewport.js?v=1',
       'motion.js?v=1','brand-boot.js?v=23','motion-messages.js?v=1','msg-actions-fix.js?v=9',
-      'reply-mobile.js?v=3','mobile-gestures.js?v=2','chat-scroll-fix.js?v=2','ui-guard.js?v=1',
+      'mobile-gestures.js?v=2','chat-scroll-fix.js?v=2','ui-guard.js?v=1',
       'name-validation.js?v=2','verified-badge.js?v=5','sw-update.js?v=11',
       'composer-fix.js?v=2','mobile-runtime.js?v=1'
     ];
