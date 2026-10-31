@@ -1935,15 +1935,31 @@
     if (row) row.dataset.msgId = String(realId);
     const c = client();
     if (!c) return;
-    const { data: existing } = await c
+    // The table has a composite primary key and no "id" column.
+    const { data: existing, error: lookupError } = await c
       .from("message_reactions")
-      .select("id")
+      .select("message_id, user_id, emoji")
       .eq("message_id", realId)
       .eq("user_id", uid)
       .eq("emoji", emoji)
       .maybeSingle();
-    if (existing && existing.id) {
-      await c.from("message_reactions").delete().eq("id", existing.id);
+
+    if (lookupError) {
+      toast(lookupError.message || "Could not load reaction");
+      return;
+    }
+
+    if (existing) {
+      const { error } = await c
+        .from("message_reactions")
+        .delete()
+        .eq("message_id", realId)
+        .eq("user_id", uid)
+        .eq("emoji", emoji);
+      if (error) {
+        toast(error.message || "Could not remove reaction");
+        return;
+      }
     } else {
       const { error } = await c.from("message_reactions").insert({
         message_id: realId,
@@ -1951,8 +1967,11 @@
         emoji: emoji
       });
       if (error) {
-        toast(error.message || "Could not react");
-        return;
+        await loadServerReactions();
+        if (!/duplicate|unique/i.test(error.message || "")) {
+          toast(error.message || "Could not react");
+          return;
+        }
       }
     }
     await loadServerReactions();
@@ -2269,6 +2288,36 @@
     openRow = null;
   }
 
+  function wireMobileReactionGesture(row) {
+    if (row.dataset.mobileReactionGesture) return;
+    row.dataset.mobileReactionGesture = "1";
+    let holdTimer = null;
+    let startX = 0;
+    let startY = 0;
+    const clearHold = () => { if (holdTimer) clearTimeout(holdTimer); holdTimer = null; };
+    row.addEventListener("pointerdown", (event) => {
+      if (!isMobile() || event.pointerType === "mouse" || event.target.closest("button,a,input,textarea,video")) return;
+      startX = event.clientX; startY = event.clientY; clearHold();
+      holdTimer = setTimeout(() => {
+        row.classList.add("actions-open");
+        const reactButton = row.querySelector('.msg-act[data-a="react"]');
+        if (reactButton) openReactPicker(reactButton, row.dataset.msgId || row.dataset.id || "");
+        holdTimer = null;
+      }, 480);
+    }, { passive: true });
+    row.addEventListener("pointermove", (event) => {
+      if (Math.abs(event.clientX - startX) > 12 || Math.abs(event.clientY - startY) > 12) clearHold();
+    }, { passive: true });
+    ["pointerup", "pointercancel", "pointerleave"].forEach((name) => row.addEventListener(name, clearHold, { passive: true }));
+    row.addEventListener("contextmenu", (event) => {
+      if (!isMobile()) return;
+      event.preventDefault();
+      row.classList.add("actions-open");
+      const reactButton = row.querySelector('.msg-act[data-a="react"]');
+      if (reactButton) openReactPicker(reactButton, row.dataset.msgId || row.dataset.id || "");
+    });
+  }
+
   function wireActions(row) {
     const acts = row.querySelector(".msg-actions");
     if (!acts || acts.dataset.fixed) return;
@@ -2316,6 +2365,7 @@
       row.appendChild(acts);
     }
     wireActions(row);
+    wireMobileReactionGesture(row);
   }
 
   function fixAlignment(row) {
