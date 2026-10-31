@@ -23,7 +23,7 @@
   }
 
   navigator.serviceWorker
-    .register("./sw.js?v=8", { scope: "./" })
+    .register("./sw.js?v=9", { scope: "./" })
     .then((reg) => {
       reg.update().catch(() => {});
       if (reg.waiting) {
