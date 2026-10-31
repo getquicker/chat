@@ -951,3 +951,1078 @@
 })();
 
 /* ===== END chat-reopen.js ===== */
+
+/* ===== BEGIN settings.js ===== */
+/**
+ * SimpleChat Settings — theme, density, sounds, accessibility, enter-to-send
+ */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const KEY = "simplechat_settings_v1";
+  const defaults = {
+    theme: "system",
+    density: "comfortable",
+    font: "md",
+    reducedMotion: "system",
+    enterToSend: true,
+    soundMessages: true,
+    soundIncomingCall: true,
+    soundOutgoingCall: true,
+    soundVolume: 0.7,
+    notifBrowser: false,
+    ringtone: "chime"
+  };
+
+  function load() {
+    try {
+      return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") };
+    } catch {
+      return { ...defaults };
+    }
+  }
+  function save(s) {
+    localStorage.setItem(KEY, JSON.stringify(s));
+  }
+
+  let settings = load();
+
+  function resolveTheme(mode) {
+    if (mode === "light") return "light";
+    if (mode === "dark") return "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  function applyTheme() {
+    const resolved = resolveTheme(settings.theme);
+    document.documentElement.setAttribute("data-theme", resolved);
+    document.documentElement.setAttribute("data-theme-mode", settings.theme);
+    document.documentElement.setAttribute("data-density", settings.density);
+    document.documentElement.setAttribute("data-font", settings.font);
+    document.documentElement.setAttribute("data-reduced-motion", settings.reducedMotion);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", resolved === "dark" ? "#0f1115" : "#0084ff");
+  }
+
+  let audioCtx = null;
+  function ctx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    return audioCtx;
+  }
+  function tone(freq, dur, type, vol) {
+    const c = ctx();
+    if (!c) return;
+    if (c.state === "suspended") c.resume().catch(() => {});
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.type = type || "sine";
+    o.frequency.value = freq;
+    g.gain.value = (vol != null ? vol : settings.soundVolume) * 0.25;
+    o.connect(g);
+    g.connect(c.destination);
+    const now = c.currentTime;
+    g.gain.setValueAtTime(g.gain.value, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    o.start(now);
+    o.stop(now + dur + 0.02);
+  }
+  function playMessageSound() {
+    if (!settings.soundMessages) return;
+    tone(880, 0.08, "sine");
+    setTimeout(() => tone(1175, 0.1, "sine"), 90);
+  }
+  let ringTimer = null;
+  function startRingtone() {
+    stopRingtone();
+    if (!settings.soundIncomingCall) return;
+    const tick = () => {
+      tone(520, 0.18, "triangle");
+      setTimeout(() => tone(680, 0.22, "triangle"), 200);
+    };
+    tick();
+    ringTimer = setInterval(tick, 1400);
+  }
+  function stopRingtone() {
+    if (ringTimer) clearInterval(ringTimer);
+    ringTimer = null;
+  }
+
+  function watchCalls() {
+    const dialog = $("callDialog");
+    if (!dialog) return;
+    const obs = new MutationObserver(() => {
+      if (!dialog.open) {
+        stopRingtone();
+        return;
+      }
+      const accept = $("acceptCallBtn");
+      const isIncoming = accept && !accept.classList.contains("hidden");
+      if (isIncoming) startRingtone();
+      else stopRingtone();
+    });
+    obs.observe(dialog, { attributes: true, attributeFilter: ["open"], subtree: true, childList: true });
+    ["acceptCallBtn", "declineCallBtn", "endCallBtn"].forEach((id) => {
+      const el = $(id);
+      if (el) el.addEventListener("click", stopRingtone, true);
+    });
+  }
+
+  function watchMessages() {
+    const box = $("messages");
+    if (!box) return;
+    let lastCount = box.children.length;
+    new MutationObserver(() => {
+      const n = box.children.length;
+      if (n > lastCount) {
+        const last = box.lastElementChild;
+        if (last && last.classList.contains("theirs")) playMessageSound();
+      }
+      lastCount = n;
+    }).observe(box, { childList: true });
+  }
+
+  window.SimpleChatSettings = {
+    get: () => ({ ...settings }),
+    enterToSend: () => !!settings.enterToSend,
+    playMessageSound,
+    startRingtone,
+    stopRingtone
+  };
+
+  function buildSettingsDialog() {
+    if ($("settingsDialog")) return;
+    const d = document.createElement("dialog");
+    d.id = "settingsDialog";
+    d.className = "settings-dialog";
+    d.innerHTML =
+      '<div class="settings-shell">' +
+      '<div class="settings-head"><h2>Settings</h2>' +
+      '<button type="button" class="icon-btn" id="settingsCloseBtn" aria-label="Close settings">' +
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>' +
+      '<div class="settings-layout">' +
+      '<nav class="settings-nav" role="tablist" aria-label="Settings sections">' +
+      '<button type="button" class="settings-nav-btn active" data-panel="appearance">Appearance</button>' +
+      '<button type="button" class="settings-nav-btn" data-panel="notifications">Notifications</button>' +
+      '<button type="button" class="settings-nav-btn" data-panel="chat">Chat</button>' +
+      '<button type="button" class="settings-nav-btn" data-panel="accessibility">Accessibility</button>' +
+      '<button type="button" class="settings-nav-btn" data-panel="account">Account</button></nav>' +
+      '<div class="settings-panels">' +
+      '<section class="settings-panel active" id="panel-appearance">' +
+      '<h3>Theme</h3><p class="settings-help">Choose light, dark, or match your device.</p>' +
+      '<div class="segmented" role="group" aria-label="Theme">' +
+      '<button type="button" data-set="theme" data-value="light">Light</button>' +
+      '<button type="button" data-set="theme" data-value="dark">Dark</button>' +
+      '<button type="button" data-set="theme" data-value="system">System</button></div>' +
+      '<h3>Density</h3><div class="segmented" role="group" aria-label="Density">' +
+      '<button type="button" data-set="density" data-value="compact">Compact</button>' +
+      '<button type="button" data-set="density" data-value="comfortable">Comfortable</button>' +
+      '<button type="button" data-set="density" data-value="spacious">Spacious</button></div>' +
+      '<h3>Text size</h3><div class="segmented" role="group" aria-label="Font size">' +
+      '<button type="button" data-set="font" data-value="sm">S</button>' +
+      '<button type="button" data-set="font" data-value="md">M</button>' +
+      '<button type="button" data-set="font" data-value="lg">L</button>' +
+      '<button type="button" data-set="font" data-value="xl">XL</button></div></section>' +
+      '<section class="settings-panel" id="panel-notifications">' +
+      '<h3>Sounds</h3>' +
+      '<label class="toggle-row"><span>Message sounds</span><input type="checkbox" id="setSoundMsg"></label>' +
+      '<label class="toggle-row"><span>Incoming call ring</span><input type="checkbox" id="setSoundIn"></label>' +
+      '<label class="toggle-row"><span>Outgoing call tone</span><input type="checkbox" id="setSoundOut"></label>' +
+      '<label class="settings-label" for="setVolume">Volume</label>' +
+      '<input type="range" id="setVolume" min="0" max="1" step="0.05">' +
+      '<div class="settings-actions">' +
+      '<button type="button" class="call-control" id="previewMsgSound">Preview message</button>' +
+      '<button type="button" class="call-control" id="previewRing">Preview ring</button></div>' +
+      '<h3>Browser notifications</h3>' +
+      '<p class="settings-help" id="notifStatus">Permission: unknown</p>' +
+      '<button type="button" class="primary" id="requestNotifBtn">Enable browser notifications</button></section>' +
+      '<section class="settings-panel" id="panel-chat">' +
+      '<h3>Composer</h3>' +
+      '<label class="toggle-row"><span>Enter sends message (Shift+Enter for new line)</span><input type="checkbox" id="setEnterSend"></label>' +
+      '<p class="settings-help">When off, Enter inserts a new line; use the Send button to send.</p></section>' +
+      '<section class="settings-panel" id="panel-accessibility">' +
+      '<h3>Motion</h3><div class="segmented" role="group" aria-label="Reduced motion">' +
+      '<button type="button" data-set="reducedMotion" data-value="system">System</button>' +
+      '<button type="button" data-set="reducedMotion" data-value="on">Reduce</button>' +
+      '<button type="button" data-set="reducedMotion" data-value="off">Full</button></div>' +
+      '<p class="settings-help">Focus rings and keyboard navigation remain available.</p></section>' +
+      '<section class="settings-panel" id="panel-account">' +
+      '<h3>Profile</h3><p class="settings-help">Change name, username, or photo in Profile.</p>' +
+      '<button type="button" class="primary" id="settingsOpenProfile">Edit profile</button>' +
+      '<button type="button" class="call-control" id="settingsLogout" style="margin-top:12px">Sign out</button></section>' +
+      '</div></div></div>';
+    document.body.appendChild(d);
+
+    d.querySelectorAll(".settings-nav-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        d.querySelectorAll(".settings-nav-btn").forEach((b) => b.classList.remove("active"));
+        d.querySelectorAll(".settings-panel").forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        const panel = $("panel-" + btn.dataset.panel);
+        if (panel) panel.classList.add("active");
+      });
+    });
+
+    function syncUI() {
+      d.querySelectorAll("[data-set]").forEach((btn) => {
+        btn.classList.toggle("active", settings[btn.dataset.set] === btn.dataset.value);
+      });
+      $("setSoundMsg").checked = settings.soundMessages;
+      $("setSoundIn").checked = settings.soundIncomingCall;
+      $("setSoundOut").checked = settings.soundOutgoingCall;
+      $("setVolume").value = settings.soundVolume;
+      $("setEnterSend").checked = settings.enterToSend;
+      $("notifStatus").textContent = "Permission: " + (Notification?.permission || "unsupported");
+    }
+
+    d.querySelectorAll("[data-set]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        settings[btn.dataset.set] = btn.dataset.value;
+        save(settings);
+        applyTheme();
+        syncUI();
+      });
+    });
+    $("setSoundMsg").onchange = () => {
+      settings.soundMessages = $("setSoundMsg").checked;
+      save(settings);
+    };
+    $("setSoundIn").onchange = () => {
+      settings.soundIncomingCall = $("setSoundIn").checked;
+      save(settings);
+    };
+    $("setSoundOut").onchange = () => {
+      settings.soundOutgoingCall = $("setSoundOut").checked;
+      save(settings);
+    };
+    $("setVolume").oninput = () => {
+      settings.soundVolume = Number($("setVolume").value);
+      save(settings);
+    };
+    $("setEnterSend").onchange = () => {
+      settings.enterToSend = $("setEnterSend").checked;
+      save(settings);
+    };
+    $("previewMsgSound").onclick = () => playMessageSound();
+    $("previewRing").onclick = () => {
+      startRingtone();
+      setTimeout(stopRingtone, 2800);
+    };
+    $("requestNotifBtn").onclick = async () => {
+      if (!("Notification" in window)) return;
+      const p = await Notification.requestPermission();
+      settings.notifBrowser = p === "granted";
+      save(settings);
+      syncUI();
+    };
+    $("settingsCloseBtn").onclick = () => d.close();
+    $("settingsOpenProfile").onclick = () => {
+      d.close();
+      $("profileBtn")?.click();
+      $("mobileProfileBtn")?.click();
+    };
+    $("settingsLogout").onclick = () => {
+      d.close();
+      $("logoutBtn")?.click();
+    };
+    d.addEventListener("close", stopRingtone);
+    syncUI();
+  }
+
+  function openSettings() {
+    buildSettingsDialog();
+    const d = $("settingsDialog");
+    try {
+      d.showModal();
+    } catch {
+      d.setAttribute("open", "");
+    }
+  }
+
+  function injectSettingsButton() {
+    const actions = document.querySelector(".sidebar-actions");
+    if (!actions || $("settingsBtn")) return;
+    const tbtn = document.createElement("button");
+    tbtn.id = "themeQuickBtn";
+    tbtn.type = "button";
+    tbtn.className = "icon-btn";
+    tbtn.title = "Toggle theme";
+    tbtn.setAttribute("aria-label", "Toggle light and dark theme");
+    tbtn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    tbtn.addEventListener("click", () => {
+      const cur = resolveTheme(settings.theme);
+      settings.theme = cur === "dark" ? "light" : "dark";
+      save(settings);
+      applyTheme();
+    });
+    const btn = document.createElement("button");
+    btn.id = "settingsBtn";
+    btn.type = "button";
+    btn.className = "icon-btn";
+    btn.title = "Settings";
+    btn.setAttribute("aria-label", "Settings");
+    btn.innerHTML =
+      '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+    btn.addEventListener("click", openSettings);
+    actions.insertBefore(btn, actions.firstChild);
+    actions.insertBefore(tbtn, actions.firstChild);
+  }
+
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      const input = $("messageInput");
+      if (!input || e.target !== input) return;
+      if (e.key !== "Enter" || e.shiftKey) return;
+      if (!settings.enterToSend) e.stopImmediatePropagation();
+    },
+    true
+  );
+
+  document.addEventListener("contextmenu", (e) => {
+    const bubble = e.target.closest && e.target.closest(".bubble");
+    if (!bubble) return;
+    e.preventDefault();
+    const text = bubble.textContent || "";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        const t = $("toast");
+        if (t) {
+          t.textContent = "Message copied";
+          t.className = "toast show";
+          setTimeout(() => {
+            t.className = "toast";
+          }, 1800);
+        }
+      });
+    }
+  });
+
+  applyTheme();
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    if (settings.theme === "system") applyTheme();
+  });
+
+  function boot() {
+    injectSettingsButton();
+    watchCalls();
+    watchMessages();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(boot, 800));
+  else setTimeout(boot, 800);
+  setInterval(injectSettingsButton, 2000);
+  console.info("SimpleChat settings module active");
+})();
+
+/* ===== END settings.js ===== */
+
+/* ===== BEGIN ui-v2.js ===== */
+/**
+ * SimpleChat UI v2 — toolbar, reply, reactions, contact panel, calls
+ */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const REACT_KEY = "sc_reactions_v1";
+  const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥"];
+
+  function toast(msg) {
+    const t = $("toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.className = "toast show";
+    setTimeout(() => { t.className = "toast"; }, 2000);
+  }
+
+  function loadReactions() {
+    try { return JSON.parse(localStorage.getItem(REACT_KEY) || "{}"); }
+    catch { return {}; }
+  }
+  function saveReactions(map) {
+    localStorage.setItem(REACT_KEY, JSON.stringify(map));
+  }
+
+  function applyThemeSoft(mode) {
+    try {
+      const s = JSON.parse(localStorage.getItem("simplechat_settings_v1") || "{}");
+      s.theme = mode;
+      localStorage.setItem("simplechat_settings_v1", JSON.stringify(s));
+      const dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme-mode", mode);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", dark ? "#0f1115" : "#0084ff");
+      toast(mode === "system" ? "Theme: System" : mode === "dark" ? "Dark theme" : "Light theme");
+    } catch {}
+  }
+
+  let openMenu = null;
+  function closeMenus() {
+    document.querySelectorAll(".sc-menu.open").forEach((m) => m.classList.remove("open"));
+    openMenu = null;
+  }
+
+  function placeMenu(menu, anchor) {
+    const r = anchor.getBoundingClientRect();
+    menu.style.visibility = "hidden";
+    menu.classList.add("open");
+    const mw = menu.offsetWidth;
+    const mh = menu.offsetHeight;
+    let left = r.right - mw;
+    let top = r.bottom + 6;
+    if (left < 8) left = 8;
+    if (left + mw > window.innerWidth - 8) left = window.innerWidth - mw - 8;
+    if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 6);
+    menu.style.left = left + "px";
+    menu.style.top = top + "px";
+    menu.style.visibility = "";
+  }
+
+  function buildMoreMenu() {
+    if ($("scMoreMenu")) return $("scMoreMenu");
+    const m = document.createElement("div");
+    m.id = "scMoreMenu";
+    m.className = "sc-menu";
+    m.setAttribute("role", "menu");
+    m.innerHTML =
+      '<div class="sc-menu-label">Appearance</div>' +
+      '<button type="button" class="sc-menu-item" data-act="theme-light" role="menuitem">Light theme <span class="check">✓</span></button>' +
+      '<button type="button" class="sc-menu-item" data-act="theme-dark" role="menuitem">Dark theme <span class="check">✓</span></button>' +
+      '<button type="button" class="sc-menu-item" data-act="theme-system" role="menuitem">System theme <span class="check">✓</span></button>' +
+      '<div class="sc-menu-sep"></div>' +
+      '<div class="sc-menu-label">Notifications</div>' +
+      '<button type="button" class="sc-menu-item" data-act="toggle-sound" role="menuitem">Message sounds</button>' +
+      '<button type="button" class="sc-menu-item" data-act="open-settings" role="menuitem">All settings…</button>' +
+      '<div class="sc-menu-sep"></div>' +
+      '<div class="sc-menu-label">Application</div>' +
+      '<button type="button" class="sc-menu-item" data-act="install" role="menuitem">Install app</button>' +
+      '<div class="sc-menu-sep"></div>' +
+      '<div class="sc-menu-label">Account</div>' +
+      '<button type="button" class="sc-menu-item" data-act="profile" role="menuitem">Profile settings</button>' +
+      '<button type="button" class="sc-menu-item danger" data-act="logout" role="menuitem">Sign out</button>';
+    document.body.appendChild(m);
+    m.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-act]");
+      if (!btn) return;
+      const act = btn.dataset.act;
+      closeMenus();
+      if (act === "theme-light") return applyThemeSoft("light");
+      if (act === "theme-dark") return applyThemeSoft("dark");
+      if (act === "theme-system") return applyThemeSoft("system");
+      if (act === "toggle-sound") {
+        try {
+          const s = JSON.parse(localStorage.getItem("simplechat_settings_v1") || "{}");
+          s.soundMessages = s.soundMessages === false;
+          localStorage.setItem("simplechat_settings_v1", JSON.stringify(s));
+          toast(s.soundMessages !== false ? "Message sounds on" : "Message sounds off");
+        } catch {}
+        return;
+      }
+      if (act === "open-settings") {
+        const d = $("settingsDialog");
+        if (d) {
+          try { d.showModal(); } catch { d.setAttribute("open", ""); }
+        } else {
+          $("settingsBtn")?.click();
+          window.dispatchEvent(new CustomEvent("sc-open-settings"));
+        }
+        return;
+      }
+      if (act === "install") { $("installAppBtn")?.click(); return; }
+      if (act === "profile") { $("profileBtn")?.click(); $("mobileProfileBtn")?.click(); return; }
+      if (act === "logout") {
+        if (confirm("Sign out of SimpleChat?")) $("logoutBtn")?.click();
+      }
+    });
+    return m;
+  }
+
+  function injectToolbar() {
+    const actions = document.querySelector(".sidebar-actions");
+    if (!actions || $("moreMenuBtn")) return;
+    const more = document.createElement("button");
+    more.id = "moreMenuBtn";
+    more.type = "button";
+    more.className = "icon-btn more-btn";
+    more.title = "More options";
+    more.setAttribute("aria-label", "More options");
+    more.setAttribute("aria-haspopup", "menu");
+    more.innerHTML =
+      '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>';
+    more.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const menu = buildMoreMenu();
+      if (menu.classList.contains("open") && openMenu === menu) {
+        closeMenus();
+        return;
+      }
+      closeMenus();
+      try {
+        const s = JSON.parse(localStorage.getItem("simplechat_settings_v1") || "{}");
+        const mode = s.theme || "system";
+        menu.querySelectorAll("[data-act^=theme-]").forEach((b) => {
+          b.classList.toggle("active", b.dataset.act === "theme-" + mode);
+        });
+      } catch {}
+      placeMenu(menu, more);
+      openMenu = menu;
+    });
+    actions.appendChild(more);
+  }
+
+  document.addEventListener("click", () => closeMenus());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeMenus();
+  });
+
+  let replyTarget = null;
+  function ensureReplyBar() {
+    if ($("replyBar")) return $("replyBar");
+    const form = $("messageForm");
+    if (!form) return null;
+    const bar = document.createElement("div");
+    bar.id = "replyBar";
+    bar.className = "reply-bar";
+    bar.innerHTML =
+      '<div class="reply-bar-body"><strong id="replyBarLabel">Reply</strong><span id="replyBarText"></span></div>' +
+      '<button type="button" class="reply-bar-close" id="replyBarClose" aria-label="Cancel reply">✕</button>';
+    form.parentNode.insertBefore(bar, form);
+    $("replyBarClose").onclick = clearReply;
+    return bar;
+  }
+  function clearReply() {
+    replyTarget = null;
+    const bar = $("replyBar");
+    if (bar) bar.classList.remove("active");
+  }
+  function setReply(msgId, text) {
+    ensureReplyBar();
+    replyTarget = { id: msgId, text: (text || "").slice(0, 120) };
+    const bar = $("replyBar");
+    if (!bar) return;
+    $("replyBarLabel").textContent = "Replying";
+    $("replyBarText").textContent = replyTarget.text;
+    bar.classList.add("active");
+    $("messageInput")?.focus();
+  }
+  function wireSendReply() {
+    const form = $("messageForm");
+    if (!form || form.dataset.replyWired) return;
+    form.dataset.replyWired = "1";
+    form.addEventListener("submit", () => {
+      if (!replyTarget) return;
+      const input = $("messageInput");
+      if (!input || !input.value.trim()) return;
+      const meta = "«reply:" + replyTarget.id + "» " + replyTarget.text.replace(/\n/g, " ").slice(0, 80);
+      if (!input.value.startsWith("«reply:")) input.value = meta + "\n" + input.value;
+      setTimeout(clearReply, 0);
+    }, true);
+  }
+
+  function ensureReactPicker() {
+    if ($("reactPicker")) return $("reactPicker");
+    const p = document.createElement("div");
+    p.id = "reactPicker";
+    p.className = "react-picker";
+    p.innerHTML = EMOJIS.map((e) => '<button type="button" data-emoji="' + e + '">' + e + "</button>").join("");
+    document.body.appendChild(p);
+    p.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-emoji]");
+      if (!b || !p.dataset.msgId) return;
+      toggleReaction(p.dataset.msgId, b.dataset.emoji);
+      p.classList.remove("open");
+    });
+    return p;
+  }
+
+  function toggleReaction(msgId, emoji) {
+    const map = loadReactions();
+    if (!map[msgId]) map[msgId] = {};
+    const entry = map[msgId];
+    if (!entry[emoji]) entry[emoji] = [];
+    const i = entry[emoji].indexOf("me");
+    if (i >= 0) entry[emoji].splice(i, 1);
+    else entry[emoji].push("me");
+    if (!entry[emoji].length) delete entry[emoji];
+    saveReactions(map);
+    renderReactionsFor(msgId);
+  }
+
+  function renderReactionsFor(msgId) {
+    const row = document.querySelector('.row[data-msg-id="' + msgId + '"]');
+    if (!row) return;
+    let box = row.querySelector(".msg-reactions");
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "msg-reactions";
+      row.appendChild(box);
+    }
+    const map = loadReactions()[msgId] || {};
+    box.innerHTML = Object.entries(map)
+      .filter(([, users]) => users.length)
+      .map(([emoji, users]) => {
+        const mine = users.includes("me") ? " mine" : "";
+        return '<button type="button" class="reaction-chip' + mine + '" data-emoji="' + emoji + '" data-msg="' + msgId + '">' + emoji + "</button>";
+      })
+      .join("");
+    box.querySelectorAll(".reaction-chip").forEach((c) => {
+      c.onclick = () => toggleReaction(c.dataset.msg, c.dataset.emoji);
+    });
+  }
+
+  function parseBody(raw) {
+    if (!raw) return { reply: null, text: "" };
+    if (raw.startsWith("«reply:")) {
+      const nl = raw.indexOf("\n");
+      if (nl > 0) {
+        const head = raw.slice(0, nl);
+        const hm = head.match(/^«reply:([^»]+)»\s*(.*)$/);
+        if (hm) return { reply: { id: hm[1], preview: hm[2] }, text: raw.slice(nl + 1) };
+      }
+    }
+    return { reply: null, text: raw };
+  }
+
+  function enhanceRow(row) {
+    if (!row || row.dataset.enhanced) return;
+    const bubble = row.querySelector(".bubble");
+    if (!bubble) return;
+    row.dataset.enhanced = "1";
+    let msgId = row.dataset.msgId || row.getAttribute("data-id") || ("dom-" + Math.random().toString(36).slice(2, 10));
+    row.dataset.msgId = msgId;
+    const raw = bubble.dataset.raw || bubble.textContent || "";
+    const parsed = parseBody(raw);
+    if (parsed.reply && !row.querySelector(".reply-preview")) {
+      const rp = document.createElement("div");
+      rp.className = "reply-preview";
+      rp.textContent = parsed.reply.preview || "Original message";
+      bubble.parentNode.insertBefore(rp, bubble);
+      if (parsed.text && bubble.textContent === raw) bubble.textContent = parsed.text;
+    }
+    if (!row.querySelector(".msg-actions")) {
+      const acts = document.createElement("div");
+      acts.className = "msg-actions";
+      acts.innerHTML =
+        '<button type="button" class="msg-act" data-a="reply" title="Reply" aria-label="Reply">↩</button>' +
+        '<button type="button" class="msg-act" data-a="react" title="React" aria-label="React">☺</button>' +
+        '<button type="button" class="msg-act" data-a="copy" title="Copy" aria-label="Copy">⧉</button>';
+      row.appendChild(acts);
+      acts.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-a]");
+        if (!b) return;
+        e.stopPropagation();
+        const text = (parsed.text || bubble.textContent || "").trim();
+        if (b.dataset.a === "copy") navigator.clipboard?.writeText(text).then(() => toast("Copied"));
+        else if (b.dataset.a === "reply") setReply(msgId, text);
+        else if (b.dataset.a === "react") {
+          const p = ensureReactPicker();
+          p.dataset.msgId = msgId;
+          const r = b.getBoundingClientRect();
+          p.style.left = Math.min(r.left, window.innerWidth - 220) + "px";
+          p.style.top = Math.max(8, r.top - 48) + "px";
+          p.classList.add("open");
+        }
+      });
+    }
+    let timer;
+    row.addEventListener("touchstart", () => { timer = setTimeout(() => row.classList.add("show-actions"), 450); }, { passive: true });
+    row.addEventListener("touchend", () => clearTimeout(timer));
+    row.addEventListener("touchmove", () => clearTimeout(timer));
+    renderReactionsFor(msgId);
+  }
+
+  function observeMessages() {
+    const box = $("messages");
+    if (!box) return;
+    new MutationObserver(() => document.querySelectorAll("#messages .row").forEach(enhanceRow)).observe(box, { childList: true, subtree: true });
+    document.querySelectorAll("#messages .row").forEach(enhanceRow);
+  }
+
+  function enhanceContactDetails() {
+    const dialog = $("contactDetailsDialog");
+    if (!dialog) return;
+    const audioBtn = $("detailsAudioBtn");
+    const videoBtn = $("detailsVideoBtn");
+    if (audioBtn && !audioBtn.dataset.iconized) {
+      audioBtn.dataset.iconized = "1";
+      audioBtn.innerHTML = "📞 Audio";
+    }
+    if (videoBtn && !videoBtn.dataset.iconized) {
+      videoBtn.dataset.iconized = "1";
+      videoBtn.innerHTML = "📹 Video";
+    }
+    [audioBtn, videoBtn].forEach((btn) => {
+      if (!btn || btn.dataset.debounce) return;
+      btn.dataset.debounce = "1";
+      btn.addEventListener("click", () => {
+        btn.disabled = true;
+        setTimeout(() => { btn.disabled = false; }, 1500);
+      }, true);
+    });
+    if (dialog.dataset.enhanced) return;
+    dialog.dataset.enhanced = "1";
+    const body = dialog.querySelector(".details-body");
+    if (!body || body.querySelector(".details-groups")) return;
+    const groups = document.createElement("div");
+    groups.className = "details-groups";
+    groups.innerHTML =
+      "<h4>Conversation</h4>" +
+      '<button type="button" data-c="msg"><span class="dg-icon">💬</span> Send message</button>' +
+      '<button type="button" data-c="mute"><span class="dg-icon">🔔</span> <span class="mute-label">Mute notifications</span></button>' +
+      '<button type="button" class="danger" data-c="hide"><span class="dg-icon">🗑️</span> Hide chat for me</button>' +
+      "<h4>About</h4>" +
+      '<div style="padding:8px 12px;color:var(--muted);font-size:0.9rem;text-align:left"><strong style="color:var(--text)">Username</strong><br><span id="detailsAboutUser"></span></div>';
+    body.appendChild(groups);
+    const un = $("detailsUsername");
+    const about = $("detailsAboutUser");
+    if (un && about) about.textContent = un.textContent || "—";
+    const muteBtn = groups.querySelector('[data-c="mute"]');
+    function syncMuteLabel() {
+      try {
+        const id = $("conversationName")?.textContent || "chat";
+        const muted = localStorage.getItem("sc_muted_" + id) === "1";
+        const lab = muteBtn?.querySelector(".mute-label");
+        if (lab) lab.textContent = muted ? "Unmute notifications" : "Mute notifications";
+      } catch {}
+    }
+    syncMuteLabel();
+    groups.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-c]");
+      if (!b) return;
+      const c = b.dataset.c;
+      if (c === "msg") {
+        try { dialog.close(); } catch { dialog.removeAttribute("open"); }
+        $("messageInput")?.focus();
+      }
+      if (c === "mute") {
+        try {
+          const id = $("conversationName")?.textContent || "chat";
+          const key = "sc_muted_" + id;
+          localStorage.setItem(key, localStorage.getItem(key) === "1" ? "0" : "1");
+          syncMuteLabel();
+          toast(localStorage.getItem(key) === "1" ? "Notifications muted" : "Notifications unmuted");
+        } catch {}
+      }
+      if (c === "hide") {
+        if (!confirm("Hide this chat for you? The other person keeps the conversation.")) return;
+        const del = document.querySelector(".chat-item.active .delete-chat-btn");
+        if (del) del.click();
+        else toast("Use the trash icon on the chat list to hide");
+        try { dialog.close(); } catch { dialog.removeAttribute("open"); }
+      }
+    });
+  }
+
+  let callTimer = null;
+  let callStartedAt = null;
+  function wireCallUI() {
+    const dialog = $("callDialog");
+    if (!dialog) return;
+    if (!$("callDuration") && $("callStatus")) {
+      const d = document.createElement("div");
+      d.id = "callDuration";
+      $("callStatus").parentNode.appendChild(d);
+    }
+    const flip = $("cameraFlipBtn");
+    new MutationObserver(() => {
+      if (dialog.open) {
+        const status = ($("callStatus")?.textContent || "").toLowerCase();
+        if (status.includes("connected") && !callStartedAt) {
+          callStartedAt = Date.now();
+          if (callTimer) clearInterval(callTimer);
+          callTimer = setInterval(() => {
+            const el = $("callDuration");
+            if (!el || !callStartedAt) return;
+            const s = Math.floor((Date.now() - callStartedAt) / 1000);
+            el.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+          }, 1000);
+        }
+        const title = ($("callTitle")?.textContent || "").toLowerCase();
+        if (flip) flip.classList.toggle("hidden", !title.includes("video"));
+      } else {
+        if (callTimer) clearInterval(callTimer);
+        callTimer = null;
+        callStartedAt = null;
+        const el = $("callDuration");
+        if (el) el.textContent = "";
+      }
+    }).observe(dialog, { attributes: true, childList: true, subtree: true });
+  }
+
+  function boot() {
+    injectToolbar();
+    ensureReplyBar();
+    wireSendReply();
+    observeMessages();
+    enhanceContactDetails();
+    wireCallUI();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => setTimeout(boot, 600));
+  else setTimeout(boot, 600);
+  setInterval(injectToolbar, 2500);
+  setInterval(enhanceContactDetails, 3000);
+  console.info("SimpleChat UI v2 active");
+})();
+
+/* ===== END ui-v2.js ===== */
+
+/* ===== BEGIN reactions.js ===== */
+/**
+ * Shared message reactions (Supabase message_reactions).
+ * Resolves temporary dom-* ids to real bigint message ids.
+ */
+(() => {
+  let db = null;
+  let myId = null;
+  let channel = null;
+  let serverOk = null;
+  let lastMsgs = [];
+
+  function client() {
+    if (db) return db;
+    try {
+      if (window.supabase && window.supabase.createClient && window.SUPABASE_URL && window.SUPABASE_ANON_KEY) {
+        db = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+      }
+    } catch (e) {}
+    return db;
+  }
+
+  function mid(msgId) {
+    return /^\d+$/.test(String(msgId)) ? Number(msgId) : msgId;
+  }
+
+  function isRealId(id) {
+    return id != null && id !== "" && !String(id).startsWith("dom-") && /^\d+$/.test(String(id));
+  }
+
+  async function ensureUser() {
+    const c = client();
+    if (!c) return null;
+    const { data } = await c.auth.getUser();
+    myId = data && data.user ? data.user.id : null;
+    return myId;
+  }
+
+  function activeConvId() {
+    const el = document.querySelector(".chat-item.active");
+    return el ? el.getAttribute("data-id") : null;
+  }
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.className = "toast show";
+    setTimeout(function () { t.className = "toast"; }, 2200);
+  }
+
+  async function fetchMessages() {
+    const convId = activeConvId();
+    const c = client();
+    if (!convId || !c) return [];
+    const { data, error } = await c
+      .from("messages")
+      .select("id, body, created_at, sender_id")
+      .eq("conversation_id", convId)
+      .order("created_at", { ascending: true });
+    if (error || !data) return lastMsgs;
+    lastMsgs = data;
+    return data;
+  }
+
+  async function tagRowsWithIds() {
+    const data = await fetchMessages();
+    if (!data.length) return;
+    const rows = Array.prototype.slice.call(document.querySelectorAll("#messages .row"));
+    const n = Math.min(rows.length, data.length);
+    for (let i = 0; i < n; i++) {
+      rows[i].dataset.msgId = String(data[i].id);
+      rows[i].dataset.msgServer = "1";
+    }
+  }
+
+  async function resolveMsgId(msgId, rowEl) {
+    if (isRealId(msgId)) return mid(msgId);
+    await tagRowsWithIds();
+    let row = rowEl;
+    if (!row && msgId) {
+      row = document.querySelector('.row[data-msg-id="' + msgId + '"]');
+    }
+    if (row && isRealId(row.dataset.msgId)) return mid(row.dataset.msgId);
+    if (row) {
+      const rows = Array.prototype.slice.call(document.querySelectorAll("#messages .row"));
+      const idx = rows.indexOf(row);
+      if (idx >= 0 && lastMsgs[idx]) return mid(lastMsgs[idx].id);
+    }
+    return null;
+  }
+
+  function renderChip(row, emoji, count, mine) {
+    let box = row.querySelector(".msg-reactions");
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "msg-reactions";
+      row.appendChild(box);
+    }
+    let chip = box.querySelector('[data-emoji="' + emoji + '"]');
+    if (!count) {
+      if (chip) chip.remove();
+      if (box && !box.children.length) box.remove();
+      return;
+    }
+    if (!chip) {
+      chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "reaction-chip";
+      chip.dataset.emoji = emoji;
+      chip.onclick = function () { toggleReaction(row.dataset.msgId, emoji); };
+      box.appendChild(chip);
+    }
+    chip.className = "reaction-chip" + (mine ? " mine" : "");
+    chip.dataset.msg = row.dataset.msgId;
+    chip.textContent = count > 1 ? emoji + " " + count : emoji;
+  }
+
+  async function loadServerReactions() {
+    const c = client();
+    const uid = await ensureUser();
+    const rows = Array.prototype.slice.call(document.querySelectorAll("#messages .row[data-msg-id]"));
+    const ids = rows.map(function (r) { return r.dataset.msgId; }).filter(isRealId).map(mid);
+    if (!c || !ids.length) return;
+    const { data, error } = await c.from("message_reactions").select("message_id, emoji, user_id").in("message_id", ids);
+    if (error) {
+      serverOk = false;
+      return;
+    }
+    serverOk = true;
+    const map = {};
+    (data || []).forEach(function (r) {
+      const id = String(r.message_id);
+      if (!map[id]) map[id] = {};
+      if (!map[id][r.emoji]) map[id][r.emoji] = { count: 0, mine: false };
+      map[id][r.emoji].count++;
+      if (uid && r.user_id === uid) map[id][r.emoji].mine = true;
+    });
+    rows.forEach(function (row) {
+      const id = row.dataset.msgId;
+      const entries = map[id] || {};
+      const box = row.querySelector(".msg-reactions");
+      if (box) box.innerHTML = "";
+      Object.keys(entries).forEach(function (emoji) {
+        const info = entries[emoji];
+        renderChip(row, emoji, info.count, info.mine);
+      });
+    });
+  }
+
+  async function toggleReaction(msgId, emoji) {
+    const uid = await ensureUser();
+    if (!uid) {
+      toast("Sign in to react");
+      return;
+    }
+    const row =
+      document.querySelector('.row[data-msg-id="' + msgId + '"]') ||
+      document.querySelector('.row[data-msg-id="' + String(msgId) + '"]');
+    const realId = await resolveMsgId(msgId, row);
+    if (!realId) {
+      toast("Wait a moment, then try reacting again");
+      await tagRowsWithIds();
+      return;
+    }
+    if (row) row.dataset.msgId = String(realId);
+    const c = client();
+    if (!c) return;
+    const { data: existing } = await c
+      .from("message_reactions")
+      .select("id")
+      .eq("message_id", realId)
+      .eq("user_id", uid)
+      .eq("emoji", emoji)
+      .maybeSingle();
+    if (existing && existing.id) {
+      await c.from("message_reactions").delete().eq("id", existing.id);
+    } else {
+      const { error } = await c.from("message_reactions").insert({
+        message_id: realId,
+        user_id: uid,
+        emoji: emoji
+      });
+      if (error) {
+        toast(error.message || "Could not react");
+        return;
+      }
+    }
+    await loadServerReactions();
+  }
+
+  async function refreshAll() {
+    await tagRowsWithIds();
+    await loadServerReactions();
+  }
+
+  function subscribe() {
+    const c = client();
+    if (!c || channel) return;
+    channel = c
+      .channel("msg-reactions")
+      .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions" }, function () {
+        loadServerReactions();
+      })
+      .subscribe();
+  }
+
+  const box = document.getElementById("messages");
+  if (box) {
+    new MutationObserver(function () {
+      setTimeout(refreshAll, 200);
+    }).observe(box, { childList: true, subtree: true });
+  }
+
+  document.addEventListener(
+    "click",
+    function (e) {
+      const btn = e.target.closest('.msg-act[data-a="react"]');
+      if (!btn) return;
+      const row = btn.closest(".row");
+      if (!row) return;
+      setTimeout(async function () {
+        await tagRowsWithIds();
+        const p = document.getElementById("reactPicker");
+        if (p && row && isRealId(row.dataset.msgId)) {
+          p.dataset.msgId = row.dataset.msgId;
+        }
+      }, 0);
+    },
+    true
+  );
+
+  setTimeout(refreshAll, 800);
+  subscribe();
+  console.info("SimpleChat shared reactions ready");
+
+  window.__scToggleReaction = toggleReaction;
+  document.addEventListener("sc-react", function (ev) {
+    const d = ev.detail || {};
+    if (d.msgId && d.emoji) toggleReaction(d.msgId, d.emoji);
+  });
+})();
+
+/* ===== END reactions.js ===== */
+
+/* ===== BEGIN call-viewport.js ===== */
+(() => {
+  const dialog = document.getElementById("callDialog");
+  if (!dialog) return;
+  const sync = () => {
+    document.documentElement.classList.toggle("call-open", !!dialog.open);
+    document.body.classList.toggle("call-open", !!dialog.open);
+  };
+  new MutationObserver(sync).observe(dialog, { attributes: true, attributeFilter: ["open"] });
+  dialog.addEventListener("close", sync);
+  sync();
+})();
+
+/* ===== END call-viewport.js ===== */
