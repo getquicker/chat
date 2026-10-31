@@ -72,13 +72,16 @@
       else if (a === "copy") { doCopy(sheetText); closeSheet(); }
       else closeSheet();
     };
+    // Mobile browsers synthesize a click after touchend; handling both runs actions twice.
     sheet.addEventListener("click", onAct);
-    sheet.addEventListener("touchend", onAct, { passive: false });
     return sheet;
   }
 
   function openSheet(msgId, text, row) {
     ensureSheet();
+    // Only one message-action surface may be visible on mobile.
+    const legacyPicker = $("reactPicker");
+    if (legacyPicker) { legacyPicker.classList.remove("open"); delete legacyPicker.dataset.msgId; }
     clearSelection();
     sheetMsgId = String(msgId || "");
     sheetText = String(text || "")
@@ -163,6 +166,7 @@
     row.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if ($("msgSheet") && $("msgSheet").classList.contains("open")) return;
       const { msgId, text } = rowMeta(row);
       openSheet(msgId, text, row);
     }, true);
