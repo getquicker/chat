@@ -1840,6 +1840,7 @@
     for (let i = 0; i < n; i++) {
       rows[i].dataset.msgId = String(data[i].id);
       rows[i].dataset.msgServer = "1";
+      renderMessageTime(rows[i], data[i].created_at);
     }
   }
 
@@ -1857,6 +1858,29 @@
       if (idx >= 0 && lastMsgs[idx]) return mid(lastMsgs[idx].id);
     }
     return null;
+  }
+
+  function renderMessageTime(row, createdAt) {
+    if (!row || !createdAt) return;
+    const bubble = row.querySelector(".bubble");
+    if (!bubble) return;
+    let meta = bubble.querySelector(":scope > .message-meta");
+    if (!meta) {
+      meta = document.createElement("div");
+      meta.className = "message-meta";
+      const time = document.createElement("time");
+      time.className = "message-time";
+      time.dateTime = createdAt;
+      meta.appendChild(time);
+      bubble.appendChild(meta);
+    }
+    const time = meta.querySelector(".message-time");
+    if (!time) return;
+    const date = new Date(createdAt);
+    if (Number.isNaN(date.getTime())) return;
+    time.dateTime = date.toISOString();
+    time.textContent = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(date);
+    time.setAttribute("aria-label", "Sent at " + time.textContent);
   }
 
   function renderChip(row, emoji, count, mine) {
