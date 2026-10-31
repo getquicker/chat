@@ -135,18 +135,22 @@
       if (!byUser.size && !byName.size) return;
       const myUsername = document.getElementById("myName");
       const myDisplay = document.getElementById("myDisplay");
-      if (myUsername) { const username = cleanText(myUsername); mark(myDisplay, username); mark(myUsername, username); }
+      // The verified badge belongs beside the display name only, never beside the username.
+      if (myDisplay) mark(myDisplay, myUsername ? cleanText(myUsername) : cleanText(myDisplay));
       const detailsUsername = document.getElementById("detailsUsername");
       const detailsName = document.getElementById("detailsName");
       const conversationName = document.getElementById("conversationName");
-      if (detailsUsername) {
-        const username = cleanText(detailsUsername);
-        mark(detailsName, username); mark(detailsUsername, username); mark(conversationName, username);
-      } else if (conversationName) {
-        mark(conversationName, conversationName.dataset.username || cleanText(conversationName));
+      if (detailsName) {
+        const username = detailsUsername ? cleanText(detailsUsername) : (detailsName.dataset.username || cleanText(detailsName));
+        mark(detailsName, username);
       }
-      // Badge name elements only; never append a badge to an entire chat-row container.
-      document.querySelectorAll(".chat-name, .peer-name, .contact-name, .profile-name, .display-name, .username").forEach(element => {
+      if (conversationName) {
+        const username = conversationName.dataset.username ||
+          (detailsUsername ? cleanText(detailsUsername) : cleanText(conversationName));
+        mark(conversationName, username);
+      }
+      // Only visible display-name elements get a badge. Username labels are intentionally excluded.
+      document.querySelectorAll(".chat-name, .peer-name, .contact-name, .profile-name, .display-name").forEach(element => {
         mark(element, element.dataset.username || "");
       });
       applyChatList();
