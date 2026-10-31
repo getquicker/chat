@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="admin-booting">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,6 +7,13 @@
   <script src="config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    html.admin-booting body > .wrap { visibility:hidden !important; }
+    #adminBootScreen { position:fixed; inset:0; z-index:99999; display:grid; place-items:center; padding:24px; background:radial-gradient(1000px 560px at 20% -10%,#2a1848 0%,#0f0c16 58%); color:#f0eaf8; font:500 14px/1.5 system-ui,sans-serif; }
+    #adminBootScreen .boot-card { display:flex; flex-direction:column; align-items:center; gap:12px; }
+    #adminBootScreen .boot-mark { width:48px; height:48px; display:grid; place-items:center; border-radius:16px; background:linear-gradient(145deg,#a78bfa,#6d28d9); font-size:22px; font-weight:800; box-shadow:0 12px 32px #6d28d944; }
+    #adminBootScreen .boot-spinner { width:19px; height:19px; border:2px solid #44345f; border-top-color:#c4b5fd; border-radius:50%; animation:admin-spin .7s linear infinite; }
+    @keyframes admin-spin { to { transform:rotate(360deg); } }
+    @media(prefers-reduced-motion:reduce) { #adminBootScreen .boot-spinner { animation-duration:1.8s; } }
     :root {
       --bg: #0f0c16; --card: #1a1624; --line: #2e283c; --text: #f0eaf8;
       --muted: #9b94ad; --accent: #8b5cf6; --ok: #22c55e; --danger: #ef4444;
@@ -54,6 +61,7 @@
   </style>
 </head>
 <body>
+  <div id="adminBootScreen" role="status" aria-live="polite"><div class="boot-card"><div class="boot-mark" aria-hidden="true">K</div><strong>Kurakani Admin</strong><span>Restoring admin session…</span><div class="boot-spinner" aria-hidden="true"></div></div></div>
   <div class="wrap">
     <a class="back" href="./index.html">← Back to Kurakani</a>
     <h1 style="margin-top:14px">Admin</h1>
@@ -163,6 +171,9 @@
     $("refreshBtn").addEventListener("click", listUsers);
     $("searchUser").addEventListener("input", () => listUsers());
     if (adminPass === ADMIN_PASS) { showPanel(true); listUsers(); }
+    document.documentElement.classList.remove("admin-booting");
+    const adminBoot = $("adminBootScreen");
+    if (adminBoot) adminBoot.remove();
   </script>
 </body>
 </html>
