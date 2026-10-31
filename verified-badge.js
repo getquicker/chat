@@ -4,28 +4,32 @@
   let lastFetch = 0;
   let applying = false;
 
-  const TICK_FIXED =
-    '<span class="sc-vtick" title="Verified" aria-label="Verified" role="img">' +
-    '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">' +
-    "<defs>" +
-    '<linearGradient id="scVg" x1="0%" y1="0%" x2="100%" y2="100%">' +
-    '<stop offset="0%" stop-color="#5BB8FF"/>' +
-    '<stop offset="50%" stop-color="#1D9BF0"/>' +
-    '<stop offset="100%" stop-color="#0A7BC8"/>' +
-    "</linearGradient>" +
-    "</defs>" +
-    '<path fill="url(#scVg)" d="M12 2.05l1.55 1.15 1.9-.3.8 1.7 1.75.65-.1 1.9 1.25 1.45-1.25 1.45.1 1.9-1.75.65-.8 1.7-1.9-.3L12 21.95l-1.55-1.15-1.9.3-.8-1.7-1.75-.65.1-1.9L4.7 12l1.25-1.45-.1-1.9 1.75-.65.8-1.7 1.9.3L12 2.05z"/>' +
-    '<path fill="none" stroke="#fff" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" d="M7.7 12.15l2.6 2.6 5.8-5.8"/>' +
-    "</svg></span>";
-
   function ensureCss() {
     if (document.getElementById("sc-vtick-css")) return;
     const st = document.createElement("style");
     st.id = "sc-vtick-css";
     st.textContent =
-      ".sc-vtick{display:inline-flex!important;align-items:center!important;justify-content:center!important;margin-left:3px!important;vertical-align:-1px!important;line-height:0!important;flex-shrink:0!important;pointer-events:none!important}" +
-      ".sc-vtick svg{display:block!important;width:13px!important;height:13px!important;filter:drop-shadow(0 0 2px rgba(29,155,240,0.35))}" +
-      ".chat-name,#conversationName,#detailsName,#myDisplay,.peer-name,.contact-name{display:inline-flex!important;align-items:center!important;max-width:100%}";
+      ".sc-vtick{" +
+      "display:inline-flex!important;" +
+      "align-items:center!important;" +
+      "justify-content:center!important;" +
+      "margin-left:4px!important;" +
+      "vertical-align:-2px!important;" +
+      "line-height:0!important;" +
+      "flex-shrink:0!important;" +
+      "pointer-events:none!important;" +
+      "}" +
+      ".sc-vtick svg{" +
+      "display:block!important;" +
+      "width:14px!important;" +
+      "height:14px!important;" +
+      "filter:drop-shadow(0 1px 2px rgba(13,110,191,0.35));" +
+      "}" +
+      ".chat-name,#conversationName,#detailsName,#myDisplay,.peer-name,.contact-name{" +
+      "display:inline-flex!important;" +
+      "align-items:center!important;" +
+      "max-width:100%" +
+      "}";
     document.head.appendChild(st);
   }
 
@@ -99,8 +103,27 @@
   function placeTick(el) {
     if (!el) return;
     el.querySelectorAll(".sc-vtick, .sc-meta-tick-host, .sc-meta-tick, .sc-verified").forEach((n) => n.remove());
+    const uid = "t" + Math.random().toString(36).slice(2, 9);
+    const html =
+      '<span class="sc-vtick" title="Verified" aria-label="Verified" role="img">' +
+      '<svg viewBox="0 0 20 20" width="14" height="14" aria-hidden="true">' +
+      "<defs>" +
+      '<linearGradient id="' + uid + 'bg" x1="2" y1="1" x2="18" y2="19" gradientUnits="userSpaceOnUse">' +
+      '<stop offset="0%" stop-color="#5AC8FA"/>' +
+      '<stop offset="42%" stop-color="#1D9BF0"/>' +
+      '<stop offset="100%" stop-color="#0A6EBF"/>' +
+      "</linearGradient>" +
+      '<linearGradient id="' + uid + 'sh" x1="10" y1="1" x2="10" y2="11" gradientUnits="userSpaceOnUse">' +
+      '<stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>' +
+      '<stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>' +
+      "</linearGradient>" +
+      "</defs>" +
+      '<circle cx="10" cy="10" r="9.2" fill="url(#' + uid + 'bg)"/>' +
+      '<ellipse cx="10" cy="6.1" rx="5.4" ry="3.1" fill="url(#' + uid + 'sh)"/>' +
+      '<path d="M5.55 10.2l2.6 2.55 6.2-6.2" fill="none" stroke="#ffffff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>' +
+      "</svg></span>";
     const host = document.createElement("span");
-    host.innerHTML = TICK_FIXED;
+    host.innerHTML = html;
     el.appendChild(host.firstChild);
   }
 

@@ -29,7 +29,7 @@
       "chat-scroll-fix.js?v=2",
       "ui-guard.js?v=1",
       "name-validation.js?v=2",
-      "verified-badge.js?v=3",
+      "verified-badge.js?v=4",
       "sw-update.js?v=1",
       "composer-fix.js?v=2"
     ];
