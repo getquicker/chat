@@ -2405,3 +2405,635 @@
 })();
 
 /* ===== END msg-actions-fix.js ===== */
+
+/* ===== BEGIN mobile-gestures.js ===== */
+(() => {
+  const EMOJIS = ["\uD83D\uDC4D", "\u2764\uFE0F", "\uD83D\uDE02", "\uD83D\uDE2E", "\uD83D\uDE22", "\uD83D\uDD25"];
+  const LONG_MS = 380;
+  const SWIPE_THRESHOLD = 60;
+  const $ = (id) => document.getElementById(id);
+
+  let sheetMsgId = "";
+  let sheetText = "";
+
+  function ensureCss() {
+    ["mobile-gestures.css?v=2", "desktop-popups.css?v=1"].forEach((href) => {
+      if (document.querySelector('link[href*="' + href.split("?")[0] + '"]')) return;
+      const l = document.createElement("link");
+      l.rel = "stylesheet";
+      l.href = href;
+      document.head.appendChild(l);
+    });
+  }
+
+  function clearSelection() {
+    try {
+      const sel = window.getSelection && window.getSelection();
+      if (sel && sel.removeAllRanges) sel.removeAllRanges();
+    } catch (e) {}
+  }
+
+  function ensureSheet() {
+    let backdrop = $("msgSheetBackdrop");
+    let sheet = $("msgSheet");
+    if (backdrop && sheet) return sheet;
+
+    backdrop = document.createElement("div");
+    backdrop.id = "msgSheetBackdrop";
+    backdrop.addEventListener("click", (e) => { e.preventDefault(); closeSheet(); }, true);
+    backdrop.addEventListener("touchend", (e) => { e.preventDefault(); closeSheet(); }, { passive: false });
+
+    sheet = document.createElement("div");
+    sheet.id = "msgSheet";
+    sheet.setAttribute("role", "dialog");
+    sheet.setAttribute("aria-label", "Message options");
+    sheet.innerHTML =
+      '<div class="sheet-handle"></div>' +
+      '<div class="sheet-reactions">' +
+      EMOJIS.map((e) =>
+        '<button type="button" data-emoji="' + e + '" aria-label="React ' + e + '">' + e + "</button>"
+      ).join("") +
+      "</div>" +
+      '<div class="sheet-actions">' +
+      '<button type="button" class="sheet-act" data-act="reply"><span class="ico">\u21A9</span> Reply</button>' +
+      '<button type="button" class="sheet-act" data-act="copy"><span class="ico">\u29C9</span> Copy</button>' +
+      "</div>" +
+      '<button type="button" class="sheet-cancel" data-act="cancel">Cancel</button>';
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(sheet);
+
+    const onAct = (e) => {
+      const emojiBtn = e.target.closest("[data-emoji]");
+      if (emojiBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        react(sheetMsgId, emojiBtn.dataset.emoji);
+        closeSheet();
+        return;
+      }
+      const act = e.target.closest("[data-act]");
+      if (!act) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const a = act.dataset.act;
+      if (a === "reply") { doReply(sheetMsgId, sheetText); closeSheet(); }
+      else if (a === "copy") { doCopy(sheetText); closeSheet(); }
+      else closeSheet();
+    };
+    sheet.addEventListener("click", onAct);
+    sheet.addEventListener("touchend", onAct, { passive: false });
+    return sheet;
+  }
+
+  function openSheet(msgId, text, row) {
+    ensureSheet();
+    clearSelection();
+    sheetMsgId = String(msgId || "");
+    sheetText = String(text || "")
+      .replace(/\u00ABreply:[^\u00BB]*\u00BB\s*/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    document.querySelectorAll("#messages .row.sheet-target").forEach((r) => r.classList.remove("sheet-target"));
+    if (row) row.classList.add("sheet-target");
+
+    $("msgSheetBackdrop").classList.add("open");
+    $("msgSheet").classList.add("open");
+    try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+  }
+
+  function closeSheet() {
+    const backdrop = $("msgSheetBackdrop");
+    const sheet = $("msgSheet");
+    if (sheet) sheet.classList.remove("open");
+    if (backdrop) backdrop.classList.remove("open");
+    document.querySelectorAll("#messages .row.sheet-target").forEach((r) => r.classList.remove("sheet-target"));
+  }
+
+  function doReply(msgId, text) {
+    if (typeof window.__scSetReply === "function") window.__scSetReply(msgId, text);
+  }
+
+  function doCopy(text) {
+    if (window.__scAllowCopyOnce) window.__scAllowCopyOnce();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => toast("Copied")).catch(() => toast("Copy failed"));
+    } else toast("Copy failed");
+  }
+
+  function react(msgId, emoji) {
+    if (typeof window.__scToggleReaction === "function") window.__scToggleReaction(msgId, emoji);
+    else document.dispatchEvent(new CustomEvent("sc-react", { detail: { msgId, emoji } }));
+  }
+
+  function toast(msg) {
+    const t = $("toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.className = "toast show";
+    setTimeout(() => { t.className = "toast"; }, 1600);
+  }
+
+  function rowMeta(row) {
+    const msgId = row.dataset.msgId || row.getAttribute("data-id") || "";
+    const bubble = row.querySelector(".bubble");
+    let text = ((bubble && bubble.textContent) || "").trim();
+    text = text.replace(/\u00ABreply:[^\u00BB]*\u00BB\s*/g, "").trim();
+    return { msgId, text };
+  }
+
+  function bindRow(row) {
+    if (!row || row.dataset.gesturesBound) return;
+    if (!row.querySelector(".bubble")) return;
+    row.dataset.gesturesBound = "1";
+
+    if (!row.querySelector(".swipe-reply-hint")) {
+      const hint = document.createElement("div");
+      hint.className = "swipe-reply-hint";
+      hint.textContent = "\u21A9";
+      hint.setAttribute("aria-hidden", "true");
+      row.appendChild(hint);
+    }
+
+    let pressTimer = null;
+    let startX = 0, startY = 0, dx = 0, dy = 0;
+    let tracking = false, swiping = false, longFired = false;
+
+    const clearPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+    const resetSwipe = () => {
+      row.classList.remove("swiping");
+      row.style.transform = "";
+      swiping = false;
+      tracking = false;
+      dx = 0; dy = 0;
+    };
+
+    row.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const { msgId, text } = rowMeta(row);
+      openSheet(msgId, text, row);
+    }, true);
+
+    row.addEventListener("touchstart", (e) => {
+      if (e.touches.length !== 1) return;
+      const t = e.touches[0];
+      startX = t.clientX; startY = t.clientY;
+      dx = 0; dy = 0;
+      tracking = true; swiping = false; longFired = false;
+      clearPress();
+      pressTimer = setTimeout(() => {
+        if (!tracking || swiping) return;
+        longFired = true;
+        clearSelection();
+        const { msgId, text } = rowMeta(row);
+        openSheet(msgId, text, row);
+      }, LONG_MS);
+    }, { passive: true });
+
+    row.addEventListener("touchmove", (e) => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      dx = t.clientX - startX;
+      dy = t.clientY - startY;
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) clearPress();
+      if (!swiping && Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+        clearPress();
+        tracking = false;
+        row.classList.remove("swiping");
+        row.style.transform = "";
+        return;
+      }
+      const absX = Math.abs(dx);
+      if (absX > 12 && absX > Math.abs(dy)) {
+        swiping = true;
+        clearPress();
+        row.classList.add("swiping");
+        row.style.transform = "translateX(" + Math.max(-88, Math.min(88, dx)) + "px)";
+        if (absX > 18 && e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+
+    const endTouch = (e) => {
+      clearPress();
+      if (!tracking) return;
+      if (longFired) {
+        if (e && e.preventDefault) e.preventDefault();
+        clearSelection();
+      } else if (swiping && Math.abs(dx) >= SWIPE_THRESHOLD) {
+        const { msgId, text } = rowMeta(row);
+        doReply(msgId, text);
+      }
+      resetSwipe();
+      setTimeout(() => { longFired = false; }, 250);
+    };
+
+    row.addEventListener("touchend", endTouch, { passive: false });
+    row.addEventListener("touchcancel", endTouch, { passive: true });
+  }
+
+  function bindAll() {
+    document.querySelectorAll("#messages .row").forEach(bindRow);
+  }
+
+  function boot() {
+    ensureCss();
+    ensureSheet();
+    bindAll();
+    document.addEventListener("selectstart", (e) => {
+      if (e.target && e.target.closest && e.target.closest("#messages .row")) e.preventDefault();
+    }, true);
+    const box = $("messages");
+    if (box) new MutationObserver(() => bindAll()).observe(box, { childList: true });
+    setTimeout(bindAll, 400);
+    setTimeout(bindAll, 1200);
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+
+  window.__scOpenMsgSheet = openSheet;
+  window.__scCloseMsgSheet = closeSheet;
+})();
+
+/* ===== END mobile-gestures.js ===== */
+
+/* ===== BEGIN chat-scroll-fix.js ===== */
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  let pinnedToBottom = true;
+  let openToken = 0;
+  let frame = 0;
+  let openTimer = null;
+  let lastScrollHeight = 0;
+  let lastUserScrollAt = 0;
+
+  const BOTTOM_THRESHOLD = 64;
+
+  function messagesEl() { return $("messages"); }
+  function distanceFromBottom(el) {
+    return Math.max(0, el.scrollHeight - el.clientHeight - el.scrollTop);
+  }
+  function isNearBottom(el, threshold = BOTTOM_THRESHOLD) {
+    return !el || distanceFromBottom(el) <= threshold;
+  }
+  function scrollToLatest() {
+    const el = messagesEl();
+    if (!el) return;
+    // Instant positioning avoids the repeated smooth-scroll/jump effect on every render.
+    el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
+    lastScrollHeight = el.scrollHeight;
+  }
+  function scheduleScroll(reason) {
+    if (reason !== "open" && !pinnedToBottom) return;
+    if (frame) cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const el = messagesEl();
+      if (!el || (reason !== "open" && !pinnedToBottom)) return;
+      scrollToLatest();
+    });
+  }
+  window.__scScrollToLatest = function() {
+    pinnedToBottom = true;
+    scheduleScroll("open");
+  };
+
+  function placeReplyBar() {
+    const form = $("messageForm");
+    const bar = $("replyBar");
+    if (form && bar && form.parentNode && bar.nextElementSibling !== form) {
+      form.parentNode.insertBefore(bar, form);
+    }
+  }
+
+  function onChatOpened() {
+    const token = ++openToken;
+    pinnedToBottom = true;
+    placeReplyBar();
+    if (openTimer) clearTimeout(openTimer);
+    let attempts = 0;
+    const tryScroll = () => {
+      if (token !== openToken) return;
+      const el = messagesEl();
+      if (!el) return;
+      scrollToLatest();
+      // Wait briefly for async history rendering, but stop as soon as rows exist.
+      if (!el.querySelector(".row") && attempts++ < 8) {
+        openTimer = setTimeout(tryScroll, 120);
+      } else {
+        requestAnimationFrame(() => {
+          if (token === openToken && pinnedToBottom) scrollToLatest();
+        });
+      }
+    };
+    tryScroll();
+  }
+
+  function watchUserScroll() {
+    const el = messagesEl();
+    if (!el || el.dataset.userScrollWatch) return;
+    el.dataset.userScrollWatch = "1";
+    el.addEventListener("scroll", () => {
+      // Respect a user's decision to read older messages; don't pull them back down.
+      pinnedToBottom = isNearBottom(el);
+      lastUserScrollAt = Date.now();
+    }, { passive: true });
+    ["wheel", "touchstart", "pointerdown"].forEach(type => {
+      el.addEventListener(type, () => { lastUserScrollAt = Date.now(); }, { passive: true });
+    });
+  }
+
+  function watchMessages() {
+    const el = messagesEl();
+    if (!el || el.dataset.scrollWatchV3) return;
+    el.dataset.scrollWatchV3 = "1";
+    lastScrollHeight = el.scrollHeight;
+    new MutationObserver((mutations) => {
+      let addedRow = false;
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType !== 1) continue;
+          if ((node.matches && node.matches(".row,.stamp")) ||
+              (node.querySelector && node.querySelector(".row,.stamp"))) {
+            addedRow = true;
+            break;
+          }
+        }
+        if (addedRow) break;
+      }
+      if (!addedRow) {
+        // Content can grow as images load. Keep the view stable unless already pinned.
+        if (pinnedToBottom && el.scrollHeight > lastScrollHeight + 8) scheduleScroll("grow");
+        lastScrollHeight = el.scrollHeight;
+        return;
+      }
+      // WhatsApp-style: follow new messages only when the reader was already at the bottom.
+      // If the user is scrolling up, preserve their reading position.
+      if (pinnedToBottom && Date.now() - lastUserScrollAt > 80) scheduleScroll("message");
+      lastScrollHeight = el.scrollHeight;
+    }).observe(el, { childList: true, subtree: true });
+  }
+
+  function watchConversation() {
+    const panel = $("conversationPanel");
+    if (!panel || panel.dataset.scrollWatchV3) return;
+    panel.dataset.scrollWatchV3 = "1";
+    let wasHidden = panel.classList.contains("hidden");
+    new MutationObserver(() => {
+      const hidden = panel.classList.contains("hidden");
+      if (wasHidden && !hidden) onChatOpened();
+      wasHidden = hidden;
+    }).observe(panel, { attributes: true, attributeFilter: ["class"] });
+  }
+
+  function watchChatList() {
+    const list = $("chatList");
+    if (!list || list.dataset.scrollWatchV3) return;
+    list.dataset.scrollWatchV3 = "1";
+    list.addEventListener("click", (event) => {
+      if (!event.target.closest(".chat-item")) return;
+      pinnedToBottom = true;
+      setTimeout(onChatOpened, 100);
+    }, true);
+  }
+
+  function watchSend() {
+    const form = $("messageForm");
+    if (!form || form.dataset.scrollSendWatch) return;
+    form.dataset.scrollSendWatch = "1";
+    form.addEventListener("submit", () => {
+      // Sending your own message should reveal it, but avoid repeated forced scrolling.
+      if (isNearBottom(messagesEl(), 120)) {
+        pinnedToBottom = true;
+        setTimeout(() => scheduleScroll("send"), 40);
+      }
+    }, true);
+  }
+
+  function boot() {
+    placeReplyBar();
+    watchUserScroll();
+    watchMessages();
+    watchConversation();
+    watchChatList();
+    watchSend();
+    const panel = $("conversationPanel");
+    if (panel && !panel.classList.contains("hidden")) onChatOpened();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot, { once: true });
+  else boot();
+})();
+/* ===== END chat-scroll-fix.js ===== */
+
+/* ===== BEGIN ui-guard.js ===== */
+(() => {
+  document.addEventListener(
+    "selectstart",
+    (e) => {
+      const t = e.target;
+      if (!t) return;
+      if (t.closest && t.closest("input, textarea, [contenteditable='true']")) return;
+      if (t.closest && t.closest("#messages, .sidebar, .conversation-head, .welcome")) {
+        e.preventDefault();
+      }
+    },
+    true
+  );
+  document.addEventListener(
+    "copy",
+    (e) => {
+      const t = e.target;
+      if (t && t.closest && t.closest("input, textarea, [contenteditable='true']")) return;
+      if (!window.__scAllowCopy) {
+        const sel = window.getSelection && window.getSelection();
+        if (sel && sel.toString()) {
+          const msgs = document.getElementById("messages");
+          if (msgs && sel.anchorNode && msgs.contains(sel.anchorNode)) {
+            e.preventDefault();
+          }
+        }
+      }
+      window.__scAllowCopy = false;
+    },
+    true
+  );
+  window.__scAllowCopyOnce = () => {
+    window.__scAllowCopy = true;
+  };
+})();
+
+/* ===== END ui-guard.js ===== */
+
+/* ===== BEGIN name-validation.js ===== */
+(() => {
+  const NAME_RE = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
+  const USER_RE = /^[a-zA-Z0-9_.]{3,24}$/;
+  const EMOJI_RE =
+    /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE00}-\u{FE0F}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu;
+
+  const NAME_IDS = ["signupDisplayName", "profileDisplayName"];
+  const USER_IDS = ["signupUsername", "profileUsername"];
+
+  function stripEmoji(s) {
+    return String(s || "")
+      .replace(EMOJI_RE, "")
+      .replace(/[^\x00-\x7F]/g, (ch) => (/[A-Za-z]/.test(ch) ? ch : ""));
+  }
+
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    if (t) {
+      t.textContent = msg;
+      t.className = "toast show";
+      setTimeout(() => { t.className = "toast"; }, 2400);
+      return;
+    }
+    const pm = document.getElementById("profileMessage");
+    if (pm) {
+      pm.textContent = msg;
+      pm.style.color = "#ef4444";
+      return;
+    }
+    alert(msg);
+  }
+
+  function validateName(v) {
+    let s = String(v || "");
+    if (EMOJI_RE.test(s) || /[^\x00-\x7F]/.test(s)) s = stripEmoji(s);
+    s = s.trim().replace(/\s+/g, " ");
+    if (!s) return { ok: false, value: s, msg: "Name is required (letters only, no emoji)" };
+    if (!NAME_RE.test(s)) {
+      return { ok: false, value: s, msg: "Name: English letters and spaces only — no emoji or symbols" };
+    }
+    if (s.length > 40) return { ok: false, value: s.slice(0, 40), msg: "Name is too long" };
+    return { ok: true, value: s };
+  }
+
+  function validateUsername(v) {
+    let s = stripEmoji(String(v || "")).trim();
+    if (!s) return { ok: false, value: s, msg: "Username is required" };
+    if (!USER_RE.test(s)) {
+      return { ok: false, value: s, msg: "Username: 3–24 characters — letters, numbers, _ or . only (no emoji)" };
+    }
+    return { ok: true, value: s.toLowerCase() };
+  }
+
+  function bindInput(el, kind) {
+    if (!el || el.dataset.strictValBound) return;
+    el.dataset.strictValBound = "1";
+    el.setAttribute("spellcheck", "false");
+
+    const enforce = () => {
+      const before = el.value;
+      const cleaned = stripEmoji(before);
+      let next = cleaned;
+      if (kind === "user") next = cleaned.replace(/[^a-zA-Z0-9_.]/g, "");
+      else next = cleaned.replace(/[^A-Za-z ]/g, "").replace(/\s+/g, " ");
+      if (next !== before) {
+        const pos = el.selectionStart;
+        el.value = next;
+        try {
+          const d = before.length - next.length;
+          el.setSelectionRange(Math.max(0, pos - d), Math.max(0, pos - d));
+        } catch (e) {}
+        if (EMOJI_RE.test(before) || /[^\x00-\x7F]/.test(before)) {
+          toast(kind === "user" ? "Emoji not allowed in username" : "Emoji not allowed in name");
+        }
+      }
+    };
+
+    el.addEventListener("input", enforce);
+    el.addEventListener("paste", () => setTimeout(enforce, 0));
+    el.addEventListener("blur", () => {
+      if (kind === "name") {
+        const r = validateName(el.value);
+        el.value = r.value;
+        if (el.value && !r.ok) toast(r.msg);
+      } else {
+        const r = validateUsername(el.value);
+        el.value = r.value;
+        if (el.value && !r.ok) toast(r.msg);
+      }
+    });
+  }
+
+  function bindAll() {
+    NAME_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) bindInput(el, "name");
+    });
+    USER_IDS.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) bindInput(el, "user");
+    });
+    document.querySelectorAll("input").forEach((el) => {
+      const id = (el.id || "").toLowerCase();
+      const name = (el.name || "").toLowerCase();
+      const ph = (el.placeholder || "").toLowerCase();
+      if (id.includes("displayname") || id.includes("display_name") || name === "name" || ph.includes("your name")) {
+        bindInput(el, "name");
+      }
+      if (id.includes("username") || name === "username" || name === "new-username" || ph.includes("username")) {
+        bindInput(el, "user");
+      }
+    });
+  }
+
+  function blockIfInvalid(e) {
+    const nameEl = document.getElementById("profileDisplayName") || document.getElementById("signupDisplayName");
+    const userEl = document.getElementById("profileUsername") || document.getElementById("signupUsername");
+    let bad = false;
+    if (nameEl && (nameEl.offsetParent !== null || nameEl.value)) {
+      const r = validateName(nameEl.value);
+      nameEl.value = r.value;
+      if (!r.ok) { toast(r.msg); bad = true; }
+    }
+    if (userEl && userEl.value) {
+      const r = validateUsername(userEl.value);
+      userEl.value = r.value;
+      if (!r.ok) { toast(r.msg); bad = true; }
+    }
+    if (bad) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return false;
+    }
+  }
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest("#saveProfileBtn, button, [type='submit']");
+    if (!btn) return;
+    const id = btn.id || "";
+    const text = (btn.textContent || "").toLowerCase();
+    if (
+      id === "saveProfileBtn" ||
+      text.includes("save profile") ||
+      text.includes("update profile") ||
+      text.includes("sign up") ||
+      text.includes("create account")
+    ) {
+      blockIfInvalid(e);
+    }
+  }, true);
+
+  document.addEventListener("submit", (e) => blockIfInvalid(e), true);
+
+  window.__scValidateName = validateName;
+  window.__scValidateUsername = validateUsername;
+  window.__scStripEmoji = stripEmoji;
+
+  function boot() {
+    bindAll();
+    setInterval(bindAll, 1000);
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();
+
+/* ===== END name-validation.js ===== */
