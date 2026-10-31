@@ -165,15 +165,31 @@
     if (row) row.dataset.msgId = String(realId);
     const c = client();
     if (!c) return;
-    const { data: existing } = await c
+    // The table has a composite primary key and no "id" column.
+    const { data: existing, error: lookupError } = await c
       .from("message_reactions")
-      .select("id")
+      .select("message_id, user_id, emoji")
       .eq("message_id", realId)
       .eq("user_id", uid)
       .eq("emoji", emoji)
       .maybeSingle();
-    if (existing && existing.id) {
-      await c.from("message_reactions").delete().eq("id", existing.id);
+
+    if (lookupError) {
+      toast(lookupError.message || "Could not load reaction");
+      return;
+    }
+
+    if (existing) {
+      const { error } = await c
+        .from("message_reactions")
+        .delete()
+        .eq("message_id", realId)
+        .eq("user_id", uid)
+        .eq("emoji", emoji);
+      if (error) {
+        toast(error.message || "Could not remove reaction");
+        return;
+      }
     } else {
       const { error } = await c.from("message_reactions").insert({
         message_id: realId,
@@ -181,8 +197,11 @@
         emoji: emoji
       });
       if (error) {
-        toast(error.message || "Could not react");
-        return;
+        await loadServerReactions();
+        if (!/duplicate|unique/i.test(error.message || "")) {
+          toast(error.message || "Could not react");
+          return;
+        }
       }
     }
     await loadServerReactions();
