@@ -2389,6 +2389,23 @@ html[data-theme="dark"] {
 #messages .reaction-chip.mine{border-color:#25d366!important;background:rgba(37,211,102,.14)!important;}
 @media(prefers-reduced-motion:reduce){#reactPicker button,#messages .reaction-chip{transition:none!important;}}
 
+/* WhatsApp-like message rhythm, inline timestamps, and non-overlapping reactions */
+#messages .row{position:relative;align-items:flex-end;margin-top:6px;row-gap:3px;}
+#messages .row.j-prev{margin-top:2px;}
+#messages .bubble{position:relative;min-width:0;padding:8px 11px 7px;}
+#messages .bubble .message-meta{display:flex;justify-content:flex-end;align-items:center;gap:5px;min-height:14px;margin:2px 0 -1px 18px;line-height:1;white-space:nowrap;pointer-events:none;}
+#messages .bubble .message-time{display:inline-block;font-size:10.5px;line-height:1.2;font-weight:500;letter-spacing:.01em;opacity:.78;font-variant-numeric:tabular-nums;}
+#messages .row.mine .bubble .message-time{color:rgba(255,255,255,.88);}
+#messages .row.theirs .bubble .message-time{color:var(--muted,#65676b);}
+#messages .row .msg-reactions{position:static!important;inset:auto!important;transform:none!important;display:flex!important;flex:0 0 100%;width:100%;max-width:100%;box-sizing:border-box;gap:4px;margin:0!important;padding:0 2px;z-index:3;pointer-events:auto;}
+#messages .row.mine .msg-reactions{justify-content:flex-end!important;}
+#messages .row.theirs .msg-reactions{justify-content:flex-start!important;}
+#messages .row:has(.msg-reactions:not(:empty)){margin-bottom:3px!important;}
+#messages .reaction-chip{max-width:100%;min-height:24px;padding:2px 7px!important;font-size:12px!important;line-height:1.2;white-space:nowrap;}
+@media(max-width:720px){#messages{padding:10px 9px 8px!important;}#messages .row{gap:5px;margin-top:5px;}#messages .bubble{max-width:min(84%,460px);padding:7px 10px 6px;font-size:14.5px;}#messages .bubble .message-time{font-size:10px;}#messages .msg-reactions{flex-wrap:wrap;}
+}
+@media(prefers-reduced-motion:reduce){#messages .reaction-chip{transition:none!important;}}
+
 /* ===== END msg-actions.css ===== */
 
 /* ===== BEGIN reply-mobile.css ===== */
