@@ -51,6 +51,29 @@
   <link rel="stylesheet" href="mobile-compat.css?v=3">
   <link rel="stylesheet" href="mobile-gestures.css?v=2">
   <link rel="stylesheet" href="desktop-popups.css?v=1">
+  <style id="criticalReplyStyles">
+    /* Critical reply styles: available before app JavaScript renders messages. */
+    #replyBar,.reply-bar{display:none;align-items:center;gap:12px;width:100%;box-sizing:border-box;margin:0;padding:10px 14px;position:relative;z-index:30;flex:0 0 auto;background:var(--surface,#211a2e);color:var(--text,#eee);border-top:1px solid var(--line-soft,rgba(167,139,250,.18))}
+    #replyBar.active,.reply-bar.active{display:flex;visibility:visible;opacity:1;pointer-events:auto}
+    #replyBar .reply-bar-body,.reply-bar-body{display:flex;flex:1 1 auto;min-width:0;flex-direction:column;gap:2px;overflow:hidden;padding-left:6px}
+    #replyBarLabel,.reply-bar-label{font-size:.68rem;font-weight:700;line-height:1.2;color:#a78bfa}
+    #replyBarText{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;line-height:1.35;color:var(--muted,#9b94ad)}
+    #replyBarClose,.reply-bar-close{flex:0 0 30px;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line-soft,rgba(167,139,250,.2));color:inherit;background:transparent}
+    #messages .bubble{display:flex;flex-direction:column;align-items:stretch;gap:0}
+    #messages .reply-quote{display:flex;flex-direction:column;gap:2px;width:100%;max-width:100%;box-sizing:border-box;margin:0 0 8px;padding:7px 10px;border-left:3px solid #a78bfa;border-radius:8px;background:rgba(0,0,0,.18);overflow:hidden}
+    #messages .row.mine .reply-quote{background:rgba(0,0,0,.2);border-left-color:rgba(255,255,255,.7)}
+    #messages .row.theirs .reply-quote{background:rgba(124,92,252,.12);border-left-color:#8b5cf6}
+    html[data-theme="light"] #messages .row.theirs .reply-quote{background:rgba(109,40,217,.1)}
+    #messages .reply-quote-label{display:block;margin:0;font-size:.68rem;font-weight:700;line-height:1.2;color:#c4b5fd}
+    #messages .row.mine .reply-quote-label{color:rgba(255,255,255,.9)}
+    html[data-theme="light"] #messages .row.theirs .reply-quote-label{color:#6d28d9}
+    #messages .reply-quote-text{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem;line-height:1.35;color:rgba(255,255,255,.72)}
+    #messages .row.theirs .reply-quote-text{color:var(--muted,#9b94ad)}
+    #messages .row.mine .reply-quote-text{color:rgba(255,255,255,.8)}
+    html[data-theme="light"] #messages .row.theirs .reply-quote-text{color:#5b4a7a}
+    #messages .bubble-body{display:block;white-space:pre-wrap;overflow-wrap:break-word;line-height:1.45}
+    @media(prefers-reduced-motion:reduce){#replyBar.active,.reply-bar.active{animation:none!important}}
+  </style>
 </head>
 <body data-page="app">
   <div id="startupScreen" role="status" aria-live="polite"><div class="startup-card"><div class="startup-mark" aria-hidden="true">K</div><strong>Kurakani</strong><span>Restoring your session…</span><div class="startup-spinner" aria-hidden="true"></div></div></div>
