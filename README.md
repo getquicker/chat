@@ -16,7 +16,7 @@ Private messaging with realtime chat and video calls.
 ## Setup
 
 1. Create a project at [supabase.com](https://supabase.com)
-2. **SQL Editor** → run `supabase_chat.sql` for the base chat schema, then apply only the additional migrations you need (`supabase_v3.sql`, `supabase_storage.sql`, `supabase_delete_fix.sql`, `supabase_reopen_chat.sql`, `supabase_video.sql`). Do not rerun migrations blindly; read each file and run it only when its feature/schema change is needed.
+2. **SQL Editor** → run `supabase_chat.sql` for the base chat schema, then apply only the additional migrations you need (`supabase_v3.sql`, `supabase_storage.sql`, `supabase_delete_fix.sql`, `supabase_reopen_chat.sql`, `supabase_video.sql`, `supabase_verified_badge.sql`). Run `supabase_verified_badge.sql` to enable verified-account badges. Do not rerun migrations blindly; read each file and run it only when its feature/schema change is needed.
 3. **Project Settings → API** → copy **Project URL** and **anon / publishable** key
 4. Edit `config.js`:
 
