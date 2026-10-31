@@ -17,6 +17,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Verify bundles match source files
+        run: |
+          node scripts/build-assets.js
+          git diff --exit-code -- app-modules.js kurakani-bundle.css
       - name: Check JavaScript syntax
         shell: bash
         run: |
