@@ -42,12 +42,12 @@ jobs:
           const fs = require('node:fs');
           const html = fs.readFileSync('index.html', 'utf8');
           const refs = [
-            ...[...html.matchAll(/<link\\b[^>]*\\bhref=["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]),
-            ...[...html.matchAll(/<script\\b[^>]*\\bsrc=["']([^"']+)["'][^>]*>/gi)].map((m) => m[1])
+            ...[...html.matchAll(/<link\b[^>]*\bhref=["']([^"']+)["'][^>]*>/gi)].map((m) => m[1]),
+            ...[...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map((m) => m[1])
           ];
           const missing = [];
           for (const ref of refs) {
-            if (/^(?:https?:)?\\/\\//i.test(ref) || ref.startsWith('data:')) continue;
+            if (/^(?:https?:)?\/\//i.test(ref) || ref.startsWith('data:')) continue;
             const path = decodeURIComponent(ref.split(/[?#]/, 1)[0]);
             if (path && !fs.existsSync(path)) missing.push(path);
           }
