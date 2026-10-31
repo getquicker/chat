@@ -39,23 +39,13 @@
     const s=document.createElement('script');
     s.textContent=code;
     document.head.appendChild(s);
-    const scripts = [
-      'fixes.js?v=35','call-overlay.js?v=3','ux-polish.js?v=3','chat-reopen.js?v=1',
-      'settings.js?v=2','ui-v2.js?v=3','reactions.js?v=3','call-viewport.js?v=1',
-      'motion.js?v=1','brand-boot.js?v=23','motion-messages.js?v=1','msg-actions-fix.js?v=9',
-      'mobile-gestures.js?v=2','chat-scroll-fix.js?v=3','ui-guard.js?v=1',
-      'name-validation.js?v=2','verified-badge.js?v=6','sw-update.js?v=11',
-      'composer-fix.js?v=2','mobile-runtime.js?v=1'
-    ];
-    for(const src of scripts){
-      await new Promise(resolve=>{
-        const el=document.createElement('script');
-        el.src=src;
-        el.onload=resolve;
-        el.onerror=()=>{console.warn('Optional app module failed to load:',src);resolve();};
-        document.head.appendChild(el);
-      });
-    }
+    await new Promise((resolve, reject) => {
+      const el = document.createElement('script');
+      el.src = 'app-modules.js?v=1';
+      el.onload = resolve;
+      el.onerror = () => reject(new Error('The application modules failed to load. Please refresh the page or check your connection.'));
+      document.head.appendChild(el);
+    });
   } catch(e) {
     fail(e && e.message ? e.message : String(e));
   }
