@@ -1,4 +1,4 @@
-/* Kurakani reply bar — premium, stable */
+/* Reply bar — matches Kurakani / Noir Violet design system */
 #replyBar,
 .reply-bar {
   display: none !important;
@@ -9,48 +9,22 @@
   max-width: 100% !important;
   box-sizing: border-box !important;
   margin: 0 !important;
-  padding: 8px 12px 8px 14px !important;
+  padding: 8px 12px 6px 12px !important;
   position: relative !important;
   z-index: 40 !important;
   flex: 0 0 auto !important;
-  background: var(--surface, #1a1524) !important;
-  color: var(--text, #eee) !important;
+  background: var(--k-composer-bg, var(--surface, #16131f)) !important;
+  color: var(--text, #f3f0fa) !important;
   border: none !important;
-  border-top: 1px solid var(--line-soft, rgba(167, 139, 250, 0.16)) !important;
+  border-top: 1px solid var(--line-soft, #2a2438) !important;
   box-shadow: none !important;
-}
-#replyBar::before,
-.reply-bar::before {
-  content: "" !important;
-  position: absolute !important;
-  left: 0 !important;
-  top: 6px !important;
-  bottom: 6px !important;
-  width: 3px !important;
-  border-radius: 0 3px 3px 0 !important;
-  background: linear-gradient(180deg, #a78bfa, #7c5cfc) !important;
-  pointer-events: none !important;
+  font-family: var(--font, Inter, system-ui, sans-serif) !important;
 }
 html[data-theme="light"] #replyBar,
 html[data-theme="light"] .reply-bar {
-  background: #f7f4fc !important;
-  border-top-color: rgba(109, 40, 217, 0.1) !important;
-  color: #1a1228 !important;
-}
-#replyBar.active,
-.reply-bar.active {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  animation: replyBarIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-@keyframes replyBarIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@media (prefers-reduced-motion: reduce) {
-  #replyBar.active, .reply-bar.active { animation: none !important; }
+  background: var(--k-composer-bg, rgba(255, 255, 255, 0.96)) !important;
+  border-top-color: var(--line-soft, #ebe7f2) !important;
+  color: var(--text, #1a1523) !important;
 }
 #replyBar .reply-bar-body,
 .reply-bar-body {
@@ -61,33 +35,68 @@ html[data-theme="light"] .reply-bar {
   justify-content: center !important;
   gap: 1px !important;
   overflow: hidden !important;
-  padding-left: 8px !important;
-  padding-right: 4px !important;
+  margin: 0 !important;
+  padding: 7px 12px 7px 11px !important;
+  border-radius: 12px !important;
+  background: var(--primary-soft, #2a2040) !important;
+  border: 1px solid transparent !important;
+  border-left: 3px solid var(--primary, #a78bfa) !important;
+  box-sizing: border-box !important;
+}
+html[data-theme="light"] #replyBar .reply-bar-body,
+html[data-theme="light"] .reply-bar-body {
+  background: var(--primary-soft, #f0ebff) !important;
+  border-left-color: var(--primary, #7c5cfc) !important;
+}
+#replyBar.active,
+.reply-bar.active {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  animation: replyBarIn var(--dur, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+@keyframes replyBarIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #replyBar.active, .reply-bar.active { animation: none !important; }
+}
+#replyBar::before,
+.reply-bar::before {
+  display: none !important;
+  content: none !important;
 }
 #replyBarLabel,
 .reply-bar-label {
   display: block !important;
-  font-size: 0.7rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.02em !important;
-  color: #a78bfa !important;
-  line-height: 1.2 !important;
   margin: 0 !important;
+  font-size: 0.72rem !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.01em !important;
+  color: var(--primary, #a78bfa) !important;
   text-transform: none !important;
 }
 html[data-theme="light"] #replyBarLabel,
-html[data-theme="light"] .reply-bar-label { color: #6d28d9 !important; }
+html[data-theme="light"] .reply-bar-label {
+  color: var(--primary, #7c5cfc) !important;
+}
 #replyBarText {
   display: block !important;
+  margin: 0 !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   font-size: 0.82rem !important;
+  font-weight: 450 !important;
   line-height: 1.35 !important;
   color: var(--muted, #9b94ad) !important;
-  font-weight: 450 !important;
 }
-html[data-theme="light"] #replyBarText { color: #6b6280 !important; }
+html[data-theme="light"] #replyBarText {
+  color: var(--muted, #6b6578) !important;
+}
 #replyBarClose,
 .reply-bar-close {
   flex: 0 0 36px !important;
@@ -95,32 +104,49 @@ html[data-theme="light"] #replyBarText { color: #6b6280 !important; }
   height: 36px !important;
   min-width: 36px !important;
   min-height: 36px !important;
-  border: none !important;
-  border-radius: 50% !important;
-  background: rgba(124, 92, 252, 0.12) !important;
-  color: var(--text, #e8e4f0) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--line-soft, #2a2438) !important;
+  border-radius: var(--radius-full, 9999px) !important;
+  background: var(--surface-2, #1e1a2a) !important;
+  color: var(--muted, #9b94ad) !important;
   cursor: pointer !important;
   display: grid !important;
   place-items: center !important;
-  font-size: 0.95rem !important;
+  font-size: 0.9rem !important;
   line-height: 1 !important;
-  padding: 0 !important;
+  box-shadow: var(--shadow-xs, none) !important;
   -webkit-tap-highlight-color: transparent !important;
   touch-action: manipulation !important;
-  transition: background 0.12s ease, transform 0.12s ease !important;
+  transition: background var(--dur-fast, 120ms) ease, color var(--dur-fast, 120ms) ease, border-color var(--dur-fast, 120ms) ease, transform var(--dur-fast, 120ms) ease !important;
 }
 html[data-theme="light"] #replyBarClose,
 html[data-theme="light"] .reply-bar-close {
-  background: rgba(109, 40, 217, 0.1) !important;
-  color: #5a4d72 !important;
+  background: var(--surface-2, #f0eef5) !important;
+  border-color: var(--line-soft, #ebe7f2) !important;
+  color: var(--muted, #6b6578) !important;
 }
-#replyBarClose:hover, .reply-bar-close:hover { background: rgba(124, 92, 252, 0.28) !important; }
-#replyBarClose:active, .reply-bar-close:active { transform: scale(0.92) !important; }
+#replyBarClose:hover,
+.reply-bar-close:hover {
+  background: var(--primary-soft, #2a2040) !important;
+  color: var(--primary, #a78bfa) !important;
+  border-color: var(--primary-muted, #4c3d6e) !important;
+}
+html[data-theme="light"] #replyBarClose:hover,
+html[data-theme="light"] .reply-bar-close:hover {
+  background: var(--primary-soft, #f0ebff) !important;
+  color: var(--primary, #7c5cfc) !important;
+  border-color: var(--primary-muted, #c4b5fd) !important;
+}
+#replyBarClose:active,
+.reply-bar-close:active {
+  transform: scale(0.94) !important;
+}
 #replyBar.active + #messageForm.composer,
 #replyBar.active + form.composer,
 .reply-bar.active + #messageForm.composer {
-  border-top: none !important;
-  padding-top: 6px !important;
+  border-top-color: transparent !important;
+  padding-top: 4px !important;
 }
 #conversationPanel.conversation,
 .conversation {
@@ -134,48 +160,49 @@ html[data-theme="light"] .reply-bar-close {
   box-sizing: border-box !important;
   margin: 0 0 6px 0 !important;
   padding: 6px 10px !important;
-  border-left: 3px solid #a78bfa !important;
-  border-radius: 8px !important;
-  background: rgba(0, 0, 0, 0.18) !important;
+  border-radius: 10px !important;
+  border-left: 3px solid var(--primary, #a78bfa) !important;
+  background: rgba(0, 0, 0, 0.16) !important;
   overflow: hidden !important;
   writing-mode: horizontal-tb !important;
 }
 #messages .row.mine .reply-quote {
-  background: rgba(0, 0, 0, 0.18) !important;
-  border-left-color: rgba(255, 255, 255, 0.75) !important;
+  background: rgba(0, 0, 0, 0.16) !important;
+  border-left-color: rgba(255, 255, 255, 0.85) !important;
 }
 #messages .row.theirs .reply-quote {
-  background: rgba(124, 92, 252, 0.12) !important;
-  border-left-color: #8b5cf6 !important;
+  background: var(--primary-soft, rgba(124, 92, 252, 0.12)) !important;
+  border-left-color: var(--primary, #8b5cf6) !important;
 }
 html[data-theme="light"] #messages .row.theirs .reply-quote {
-  background: rgba(109, 40, 217, 0.1) !important;
+  background: var(--primary-soft, #f0ebff) !important;
+  border-left-color: var(--primary, #7c5cfc) !important;
 }
 #messages .reply-quote-label {
   display: block !important;
+  margin: 0 0 2px 0 !important;
   font-size: 0.68rem !important;
   font-weight: 700 !important;
   line-height: 1.2 !important;
-  color: #c4b5fd !important;
-  margin: 0 0 2px 0 !important;
+  color: var(--primary-muted, #c4b5fd) !important;
   writing-mode: horizontal-tb !important;
 }
-#messages .row.mine .reply-quote-label { color: rgba(255, 255, 255, 0.9) !important; }
-html[data-theme="light"] #messages .row.theirs .reply-quote-label { color: #6d28d9 !important; }
+#messages .row.mine .reply-quote-label { color: rgba(255, 255, 255, 0.92) !important; }
+html[data-theme="light"] #messages .row.theirs .reply-quote-label { color: var(--primary, #7c5cfc) !important; }
 #messages .reply-quote-text {
   display: block !important;
-  font-size: 0.8rem !important;
-  line-height: 1.35 !important;
+  max-width: 100% !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-  max-width: 100% !important;
+  font-size: 0.8rem !important;
+  line-height: 1.35 !important;
   writing-mode: horizontal-tb !important;
   color: rgba(255, 255, 255, 0.72) !important;
 }
 #messages .row.theirs .reply-quote-text { color: var(--muted, #9b94ad) !important; }
 #messages .row.mine .reply-quote-text { color: rgba(255, 255, 255, 0.82) !important; }
-html[data-theme="light"] #messages .row.theirs .reply-quote-text { color: #5b4a7a !important; }
+html[data-theme="light"] #messages .row.theirs .reply-quote-text { color: var(--muted, #6b6578) !important; }
 #messages .bubble-body {
   display: block !important;
   white-space: pre-wrap !important;
@@ -185,7 +212,7 @@ html[data-theme="light"] #messages .row.theirs .reply-quote-text { color: #5b4a7
   line-height: 1.45 !important;
 }
 @media (max-width: 720px) {
-  #replyBar, .reply-bar { padding: 10px 12px 10px 14px !important; }
+  #replyBar, .reply-bar { padding: 8px 10px 6px 10px !important; }
   #replyBarClose, .reply-bar-close {
     width: 40px !important;
     height: 40px !important;

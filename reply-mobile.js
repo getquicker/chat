@@ -153,7 +153,7 @@
     if (document.querySelector('link[href*="reply-mobile.css"]')) return;
     const l = document.createElement("link");
     l.rel = "stylesheet";
-    l.href = "reply-mobile.css?v=6";
+    l.href = "reply-mobile.css?v=7";
     document.head.appendChild(l);
   }
 
