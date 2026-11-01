@@ -123,11 +123,11 @@
       const q = document.createElement("div");
       q.className = "reply-quote";
 
-      const lab = document.createElement("span");
+      const lab = document.createElement("div");
       lab.className = "reply-quote-label";
       lab.textContent = "Replying to";
 
-      const qt = document.createElement("span");
+      const qt = document.createElement("div");
       qt.className = "reply-quote-text";
       qt.textContent = quoteText;
 
@@ -142,10 +142,18 @@
         bubble.appendChild(body);
       }
 
-      bubble.style.writingMode = "horizontal-tb";
-      bubble.style.display = "block";
-      bubble.style.width = "max-content";
-      bubble.style.maxWidth = "min(78%, 420px)";
+      bubble.style.setProperty("writing-mode", "horizontal-tb", "important");
+      bubble.style.setProperty("display", "inline-block", "important");
+      bubble.style.setProperty("width", "auto", "important");
+      bubble.style.setProperty("min-width", "7.5rem", "important");
+      bubble.style.setProperty("max-width", "min(78%, 420px)", "important");
+      q.style.setProperty("min-width", "9rem", "important");
+      q.style.setProperty("width", "max-content", "important");
+      q.style.setProperty("writing-mode", "horizontal-tb", "important");
+      lab.style.setProperty("white-space", "nowrap", "important");
+      lab.style.setProperty("writing-mode", "horizontal-tb", "important");
+      qt.style.setProperty("white-space", "nowrap", "important");
+      qt.style.setProperty("writing-mode", "horizontal-tb", "important");
     });
   }
 

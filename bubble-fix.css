@@ -1,4 +1,4 @@
-/* Fix: message bubble width collapse after reactions */
+/* HARD FIX: never collapse message / reply into vertical letters */
 #messages .row {
   display: flex !important;
   flex-direction: row !important;
@@ -14,56 +14,82 @@
 #messages .row .bubble,
 #messages .row.mine .bubble,
 #messages .row.theirs .bubble {
-  display: block !important;
+  display: inline-block !important;
   flex: 0 1 auto !important;
-  flex-direction: row !important;
-  width: max-content !important;
+  float: none !important;
+  width: auto !important;
+  min-width: 7.5rem !important;
   max-width: min(78%, 420px) !important;
-  min-width: 3.25rem !important;
   box-sizing: border-box !important;
   white-space: pre-wrap !important;
   word-break: normal !important;
-  overflow-wrap: break-word !important;
+  overflow-wrap: anywhere !important;
   writing-mode: horizontal-tb !important;
   direction: ltr !important;
   text-orientation: mixed !important;
   line-height: 1.45 !important;
   overflow: visible !important;
+  vertical-align: bottom !important;
 }
 
 #messages .bubble .reply-quote,
-#messages .bubble .bubble-body,
-#messages .bubble .reply-quote-label,
-#messages .bubble .reply-quote-text {
+#messages .reply-quote {
   display: block !important;
-  writing-mode: horizontal-tb !important;
-  direction: ltr !important;
-  white-space: normal !important;
-  word-break: normal !important;
-  overflow-wrap: break-word !important;
-  max-width: 100% !important;
-  width: auto !important;
-  min-width: 0 !important;
+  width: max-content !important;
+  min-width: 9rem !important;
+  max-width: min(16rem, 70vw) !important;
   box-sizing: border-box !important;
-}
-
-#messages .bubble .reply-quote {
   margin: 0 0 6px 0 !important;
   padding: 6px 10px !important;
-  border-left: 3px solid rgba(167, 139, 250, 0.95) !important;
-  border-radius: 8px !important;
-  max-width: 100% !important;
+  border-radius: 10px !important;
+  border-left: 3px solid var(--primary, #a78bfa) !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  overflow: hidden !important;
 }
 
+#messages .reply-quote-label,
+#messages .bubble .reply-quote-label {
+  display: block !important;
+  width: auto !important;
+  white-space: nowrap !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  margin: 0 0 2px 0 !important;
+}
+
+#messages .reply-quote-text,
 #messages .bubble .reply-quote-text {
+  display: block !important;
+  width: auto !important;
+  max-width: 100% !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  max-width: 16rem !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  font-size: 0.8rem !important;
+  line-height: 1.35 !important;
 }
 
+#messages .bubble-body,
 #messages .bubble .bubble-body {
+  display: block !important;
+  width: auto !important;
+  min-width: 2rem !important;
   white-space: pre-wrap !important;
+  writing-mode: horizontal-tb !important;
+  direction: ltr !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.45 !important;
 }
 
 #messages .msg-reactions {
@@ -71,53 +97,29 @@
   bottom: -12px !important;
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
   gap: 4px !important;
   z-index: 4 !important;
-  pointer-events: auto !important;
-  max-width: none !important;
   width: auto !important;
 }
-#messages .row.theirs .msg-reactions {
-  left: 44px !important;
-  right: auto !important;
-}
-#messages .row.mine .msg-reactions {
-  right: 14px !important;
-  left: auto !important;
-}
+#messages .row.theirs .msg-reactions { left: 44px !important; right: auto !important; }
+#messages .row.mine .msg-reactions { right: 14px !important; left: auto !important; }
 #messages .row:has(.msg-reactions:not(:empty)) {
   margin-bottom: 18px !important;
   padding-bottom: 4px !important;
 }
-
 #messages .reaction-chip {
   flex: 0 0 auto !important;
   white-space: nowrap !important;
-  font-size: 0.85rem !important;
-  line-height: 1.2 !important;
-  padding: 2px 8px !important;
-  border-radius: 999px !important;
-  background: var(--surface, #fff) !important;
-  border: 1px solid var(--line-soft, #e0d8ec) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
-}
-
-#messages .msg-actions {
-  flex: 0 0 auto !important;
-  flex-shrink: 0 !important;
 }
 
 @media (max-width: 720px) {
   #messages .bubble,
   #messages .row .bubble {
+    min-width: 6.5rem !important;
     max-width: min(82vw, 100%) !important;
-    width: max-content !important;
   }
-  #messages .bubble .reply-quote-text {
-    max-width: 12rem !important;
-  }
-  #messages .msg-actions {
-    position: absolute !important;
+  #messages .reply-quote {
+    min-width: 8rem !important;
+    max-width: min(14rem, 72vw) !important;
   }
 }
