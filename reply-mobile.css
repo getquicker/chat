@@ -1,34 +1,31 @@
-/* Premium reply bar (mobile + desktop) */
+/* Kurakani reply bar — premium, stable */
 #replyBar,
 .reply-bar {
   display: none !important;
   flex-direction: row !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 10px !important;
   width: 100% !important;
+  max-width: 100% !important;
   box-sizing: border-box !important;
   margin: 0 !important;
-  padding: 10px 14px !important;
+  padding: 8px 12px 8px 14px !important;
   position: relative !important;
-  z-index: 30 !important;
+  z-index: 40 !important;
   flex: 0 0 auto !important;
-  background: linear-gradient(180deg, rgba(36, 30, 52, 0.98) 0%, rgba(22, 18, 32, 0.98) 100%) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-top: 1px solid rgba(167, 139, 250, 0.18) !important;
-  border-bottom: none !important;
-  border-left: none !important;
-  border-right: none !important;
-  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.22) !important;
-  color: #eee !important;
+  background: var(--surface, #1a1524) !important;
+  color: var(--text, #eee) !important;
+  border: none !important;
+  border-top: 1px solid var(--line-soft, rgba(167, 139, 250, 0.16)) !important;
+  box-shadow: none !important;
 }
 #replyBar::before,
 .reply-bar::before {
   content: "" !important;
   position: absolute !important;
   left: 0 !important;
-  top: 8px !important;
-  bottom: 8px !important;
+  top: 6px !important;
+  bottom: 6px !important;
   width: 3px !important;
   border-radius: 0 3px 3px 0 !important;
   background: linear-gradient(180deg, #a78bfa, #7c5cfc) !important;
@@ -36,9 +33,8 @@
 }
 html[data-theme="light"] #replyBar,
 html[data-theme="light"] .reply-bar {
-  background: linear-gradient(180deg, #faf8fd 0%, #f3f0f9 100%) !important;
-  border-top-color: rgba(109, 40, 217, 0.12) !important;
-  box-shadow: 0 -4px 18px rgba(40, 20, 80, 0.06) !important;
+  background: #f7f4fc !important;
+  border-top-color: rgba(109, 40, 217, 0.1) !important;
   color: #1a1228 !important;
 }
 #replyBar.active,
@@ -47,11 +43,14 @@ html[data-theme="light"] .reply-bar {
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
-  animation: replyBarIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: replyBarIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes replyBarIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #replyBar.active, .reply-bar.active { animation: none !important; }
 }
 #replyBar .reply-bar-body,
 .reply-bar-body {
@@ -59,99 +58,91 @@ html[data-theme="light"] .reply-bar {
   min-width: 0 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 2px !important;
+  justify-content: center !important;
+  gap: 1px !important;
   overflow: hidden !important;
-  padding-left: 6px !important;
+  padding-left: 8px !important;
+  padding-right: 4px !important;
 }
-#replyBarLabel {
-  font-size: 0.68rem !important;
+#replyBarLabel,
+.reply-bar-label {
+  display: block !important;
+  font-size: 0.7rem !important;
   font-weight: 700 !important;
-  color: #c4b5fd !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: 0.02em !important;
+  color: #a78bfa !important;
   line-height: 1.2 !important;
+  margin: 0 !important;
+  text-transform: none !important;
 }
-html[data-theme="light"] #replyBarLabel { color: #6d28d9 !important; }
+html[data-theme="light"] #replyBarLabel,
+html[data-theme="light"] .reply-bar-label { color: #6d28d9 !important; }
 #replyBarText {
+  display: block !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-  color: #a89fb8 !important;
-  font-size: 0.88rem !important;
+  font-size: 0.82rem !important;
   line-height: 1.35 !important;
+  color: var(--muted, #9b94ad) !important;
   font-weight: 450 !important;
 }
 html[data-theme="light"] #replyBarText { color: #6b6280 !important; }
 #replyBarClose,
 .reply-bar-close {
-  flex: 0 0 34px !important;
-  width: 34px !important;
-  height: 34px !important;
-  min-width: 34px !important;
-  min-height: 34px !important;
-  border: 1px solid rgba(167, 139, 250, 0.15) !important;
+  flex: 0 0 36px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border: none !important;
   border-radius: 50% !important;
-  background: rgba(42, 36, 56, 0.9) !important;
-  color: #c8bfd9 !important;
+  background: rgba(124, 92, 252, 0.12) !important;
+  color: var(--text, #e8e4f0) !important;
   cursor: pointer !important;
   display: grid !important;
   place-items: center !important;
   font-size: 0.95rem !important;
   line-height: 1 !important;
+  padding: 0 !important;
   -webkit-tap-highlight-color: transparent !important;
   touch-action: manipulation !important;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease !important;
+  transition: background 0.12s ease, transform 0.12s ease !important;
 }
-html[data-theme="light"] #replyBarClose {
-  background: #ebe6f4 !important;
-  border-color: rgba(109, 40, 217, 0.12) !important;
+html[data-theme="light"] #replyBarClose,
+html[data-theme="light"] .reply-bar-close {
+  background: rgba(109, 40, 217, 0.1) !important;
   color: #5a4d72 !important;
 }
-#replyBarClose:hover {
-  background: rgba(124, 92, 252, 0.3) !important;
-  color: #fff !important;
-}
-#replyBarClose:active {
-  transform: scale(0.92) !important;
-  background: rgba(124, 92, 252, 0.4) !important;
-}
+#replyBarClose:hover, .reply-bar-close:hover { background: rgba(124, 92, 252, 0.28) !important; }
+#replyBarClose:active, .reply-bar-close:active { transform: scale(0.92) !important; }
 #replyBar.active + #messageForm.composer,
-#replyBar.active + .composer,
+#replyBar.active + form.composer,
 .reply-bar.active + #messageForm.composer {
   border-top: none !important;
-  padding-top: 8px !important;
+  padding-top: 6px !important;
 }
-@media (min-width: 900px) {
-  #replyBar.active,
-  .reply-bar.active {
-    padding-left: max(20px, calc(50% - 400px)) !important;
-    padding-right: max(20px, calc(50% - 400px)) !important;
-  }
-}
-
-#messages .bubble {
+#conversationPanel.conversation,
+.conversation {
   display: flex !important;
   flex-direction: column !important;
-  align-items: stretch !important;
-  gap: 0 !important;
 }
-#messages .reply-quote {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 2px !important;
-  width: 100% !important;
+#messages .bubble .reply-quote {
+  display: block !important;
+  width: auto !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  margin: 0 0 8px 0 !important;
-  padding: 7px 10px !important;
+  margin: 0 0 6px 0 !important;
+  padding: 6px 10px !important;
   border-left: 3px solid #a78bfa !important;
   border-radius: 8px !important;
-  background: rgba(0, 0, 0, 0.22) !important;
+  background: rgba(0, 0, 0, 0.18) !important;
   overflow: hidden !important;
+  writing-mode: horizontal-tb !important;
 }
 #messages .row.mine .reply-quote {
-  background: rgba(0, 0, 0, 0.2) !important;
-  border-left-color: rgba(255, 255, 255, 0.7) !important;
+  background: rgba(0, 0, 0, 0.18) !important;
+  border-left-color: rgba(255, 255, 255, 0.75) !important;
 }
 #messages .row.theirs .reply-quote {
   background: rgba(124, 92, 252, 0.12) !important;
@@ -160,17 +151,14 @@ html[data-theme="light"] #replyBarClose {
 html[data-theme="light"] #messages .row.theirs .reply-quote {
   background: rgba(109, 40, 217, 0.1) !important;
 }
-html[data-theme="light"] #messages .row.mine .reply-quote {
-  background: rgba(255, 255, 255, 0.22) !important;
-  border-left-color: rgba(255, 255, 255, 0.85) !important;
-}
 #messages .reply-quote-label {
   display: block !important;
   font-size: 0.68rem !important;
   font-weight: 700 !important;
-  color: #c4b5fd !important;
-  margin: 0 !important;
   line-height: 1.2 !important;
+  color: #c4b5fd !important;
+  margin: 0 0 2px 0 !important;
+  writing-mode: horizontal-tb !important;
 }
 #messages .row.mine .reply-quote-label { color: rgba(255, 255, 255, 0.9) !important; }
 html[data-theme="light"] #messages .row.theirs .reply-quote-label { color: #6d28d9 !important; }
@@ -178,40 +166,31 @@ html[data-theme="light"] #messages .row.theirs .reply-quote-label { color: #6d28
   display: block !important;
   font-size: 0.8rem !important;
   line-height: 1.35 !important;
-  color: rgba(255, 255, 255, 0.72) !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
   max-width: 100% !important;
+  writing-mode: horizontal-tb !important;
+  color: rgba(255, 255, 255, 0.72) !important;
 }
 #messages .row.theirs .reply-quote-text { color: var(--muted, #9b94ad) !important; }
-#messages .row.mine .reply-quote-text { color: rgba(255, 255, 255, 0.8) !important; }
+#messages .row.mine .reply-quote-text { color: rgba(255, 255, 255, 0.82) !important; }
 html[data-theme="light"] #messages .row.theirs .reply-quote-text { color: #5b4a7a !important; }
 #messages .bubble-body {
   display: block !important;
   white-space: pre-wrap !important;
   word-break: normal !important;
   overflow-wrap: break-word !important;
+  writing-mode: horizontal-tb !important;
   line-height: 1.45 !important;
 }
 @media (max-width: 720px) {
-  #replyBar,
-  .reply-bar {
-    padding: 11px 14px !important;
-    padding-left: 16px !important;
+  #replyBar, .reply-bar { padding: 10px 12px 10px 14px !important; }
+  #replyBarClose, .reply-bar-close {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    flex-basis: 40px !important;
   }
-  #replyBarClose,
-  .reply-bar-close {
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px !important;
-    min-height: 38px !important;
-    flex-basis: 38px !important;
-  }
-  #messages .reply-quote {
-    padding: 8px 10px !important;
-    margin-bottom: 6px !important;
-    border-radius: 10px !important;
-  }
-  #messages .bubble { max-width: min(85%, 100%) !important; }
 }
